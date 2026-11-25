@@ -6,6 +6,7 @@ const ROOT = __dirname;
 loadEnv(path.join(ROOT, ".env"));
 
 const PORT = Number(process.env.PORT || 8765);
+const HOST = process.env.RAILWAY_ENVIRONMENT_ID ? "0.0.0.0" : "127.0.0.1";
 const BASE_URL = (process.env.ANYTHINGLLM_URL || "").replace(/\/+$/, "");
 const API_KEY = process.env.ANYTHINGLLM_API_KEY || "";
 const WORKSPACE_SLUG = process.env.ANYTHINGLLM_WORKSPACE_SLUG || "";
@@ -55,6 +56,10 @@ const server = http.createServer(async (request, response) => {
     return checkAnythingLlm(response);
   }
 
+  if (request.method === "GET" && request.url === "/healthz") {
+    return sendJson(response, 200, { ok: true });
+  }
+
   if (request.method === "POST" && request.url === "/api/chat") {
     return chat(request, response);
   }
@@ -71,19 +76,32 @@ async function checkAnythingLlm(response) {
   if (missing.length) {
     return sendJson(response, 503, {
       connected: false,
-      error: `.env 설정이 필요합니다: ${missing.join(", ")}`,
+      error: `서버 환경 변수 설정이 필요합니다: ${missing.join(", ")}`,
     });
   }
 
   try {
-    const upstream = await fetchWithTimeout(`${BASE_URL}/api/v1/auth`, {
-      headers: { Authorization: `Bearer ${API_KEY}` },
-    }, 15_000);
+    const upstream = await fetchWithTimeout(
+      `${BASE_URL}/api/v1/workspace/${encodeURIComponent(WORKSPACE_SLUG)}`,
+      { headers: { Authorization: `Bearer ${API_KEY}` } },
+      15_000,
+    );
 
     if (!upstream.ok) {
       return sendJson(response, 503, {
         connected: false,
-        error: authError(upstream.status),
+        error: upstream.status === 401 || upstream.status === 403
+          ? authError(upstream.status)
+          : `AnythingLLM 워크스페이스 확인에 실패했습니다. (HTTP ${upstream.status})`,
+      });
+    }
+
+    const data = await upstream.json();
+    if (!Array.isArray(data.workspace) ||
+        !data.workspace.some((workspace) => workspace.slug === WORKSPACE_SLUG)) {
+      return sendJson(response, 503, {
+        connected: false,
+        error: "워크스페이스 slug를 확인해 주세요.",
       });
     }
 
@@ -100,7 +118,7 @@ async function chat(request, response) {
   const missing = missingSettings();
   if (missing.length) {
     return sendJson(response, 503, {
-      error: `.env 설정이 필요합니다: ${missing.join(", ")}`,
+      error: `서버 환경 변수 설정이 필요합니다: ${missing.join(", ")}`,
     });
   }
 
@@ -780,6 +798,6 @@ server.on("error", (error) => {
   process.exit(1);
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`식물 관찰 학습: http://127.0.0.1:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`식물 관찰 학습: http://${HOST}:${PORT}`);
 });
