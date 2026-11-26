@@ -3,904 +3,183 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>식물 관찰 학습</title>
-  <style>
-    :root {
-      --green-900: #173d2a;
-      --green-700: #2f6948;
-      --green-100: #e7f0e7;
-      --paper: #fffdf8;
-      --ground: #f4f1e8;
-      --line: #d8e1d7;
-      --muted: #66756b;
-      --error: #9a482f;
-      --error-bg: #fae8e0;
-    }
-
-    * { box-sizing: border-box; }
-
-    html, body {
-      height: 100%;
-      margin: 0;
-    }
-
-    body {
-      overflow: hidden;
-      color: var(--green-900);
-      background:
-        radial-gradient(circle at 5% 0%, #e5efe2 0, transparent 35%),
-        radial-gradient(circle at 100% 0%, #f3e9d6 0, transparent 32%),
-        var(--ground);
-      font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
-    }
-
-    button, textarea { font: inherit; }
-
-    .page {
-      height: 100%;
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex: 0 0 auto;
-    }
-
-    .logo {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
-      color: white;
-      font-size: 23px;
-      background: linear-gradient(145deg, #4c9566, var(--green-900));
-      box-shadow: 0 9px 22px rgb(23 61 42 / 18%);
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 24px;
-      letter-spacing: -.04em;
-    }
-
-    header p {
-      margin: 3px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    main {
-      flex: 1;
-      min-height: 0;
-      display: grid;
-      grid-template-columns: minmax(0, 1.12fr) minmax(340px, .88fr);
-      gap: 14px;
-    }
-
-    .panel {
-      min-height: 0;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      background: var(--paper);
-      box-shadow: 0 15px 34px rgb(23 61 42 / 8%);
-    }
-
-    .panel-head {
-      min-height: 52px;
-      padding: 13px 17px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .panel-head h2 {
-      margin: 0;
-      font-size: 16px;
-    }
-
-    .badge {
-      padding: 6px 10px;
-      border-radius: 999px;
-      color: var(--green-700);
-      background: var(--green-100);
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .badge.error {
-      color: var(--error);
-      background: var(--error-bg);
-    }
-
-    .photo-body {
-      flex: 1;
-      min-height: 0;
-      padding: 14px;
-      display: grid;
-      grid-template-rows: minmax(0, 1fr) 92px;
-      gap: 11px;
-    }
-
-    .stage {
-      min-height: 0;
-      position: relative;
-      overflow: hidden;
-      display: grid;
-      place-items: center;
-      border: 1px dashed #acc4ae;
-      border-radius: 17px;
-      background: repeating-linear-gradient(
-        135deg, #f5f8f2 0 14px, #edf3eb 14px 28px
-      );
-    }
-
-    .stage.drag { outline: 3px solid #83ae8a; }
-    .stage.filled { background: #152019; border-style: solid; }
-
-    .stage > img {
-      display: none;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    .stage.filled > img { display: block; }
-
-    .empty {
-      max-width: 330px;
-      padding: 24px;
-      text-align: center;
-      line-height: 1.6;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .empty strong {
-      display: block;
-      margin-bottom: 5px;
-      color: var(--green-900);
-      font-size: 17px;
-    }
-
-    .stage.filled .empty,
-    .stage.has-file .empty { display: none; }
-
-    .doc-preview {
-      display: none;
-      max-width: 360px;
-      padding: 28px 24px;
-      border-radius: 18px;
-      text-align: center;
-      background: white;
-      box-shadow: 0 10px 24px rgb(23 61 42 / 10%);
-    }
-
-    .stage.has-file {
-      background: #f5f8f2;
-      border-style: solid;
-    }
-
-    .stage.has-file .doc-preview { display: block; }
-
-    .doc-preview .ext {
-      display: inline-block;
-      min-width: 64px;
-      padding: 7px 10px;
-      border-radius: 10px;
-      color: white;
-      background: var(--green-700);
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: .04em;
-    }
-
-    .doc-preview strong {
-      display: block;
-      margin: 12px 0 6px;
-      word-break: break-all;
-      font-size: 16px;
-    }
-
-    .doc-preview p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .caption {
-      display: none;
-      position: absolute;
-      right: 10px;
-      bottom: 10px;
-      left: 10px;
-      padding: 8px 11px;
-      border-radius: 10px;
-      color: white;
-      background: rgb(12 25 17 / 70%);
-      backdrop-filter: blur(7px);
-      font-size: 12px;
-    }
-
-    .stage.filled .caption,
-    .stage.has-file .caption {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .thumbs {
-      min-width: 0;
-      display: flex;
-      gap: 9px;
-      overflow-x: auto;
-      padding: 3px;
-    }
-
-    .add-photo, .thumb {
-      width: 82px;
-      height: 82px;
-      flex: 0 0 auto;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: white;
-      cursor: pointer;
-    }
-
-    .add-photo {
-      display: grid;
-      place-content: center;
-      gap: 3px;
-      color: var(--green-700);
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .add-photo b { font-size: 22px; line-height: 1; }
-
-    .thumb {
-      position: relative;
-      padding: 0;
-      overflow: hidden;
-    }
-
-    .thumb.active { outline: 3px solid var(--green-700); }
-
-    .thumb img {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-    }
-
-    .thumb.doc {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      padding: 8px 6px;
-      background: #f3f7f2;
-    }
-
-    .thumb.doc .ext {
-      padding: 2px 6px;
-      border-radius: 6px;
-      color: white;
-      background: var(--green-700);
-      font-size: 10px;
-      font-weight: 800;
-    }
-
-    .thumb.doc .fname {
-      max-width: 100%;
-      overflow: hidden;
-      color: var(--green-900);
-      font-size: 10px;
-      font-weight: 700;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .remove {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      width: 22px;
-      height: 22px;
-      padding: 0;
-      border: 0;
-      border-radius: 50%;
-      color: white;
-      background: rgb(15 31 21 / 78%);
-      cursor: pointer;
-    }
-
-    #fileInput { display: none; }
-
-    .chat-body {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .messages {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      padding: 17px;
-      display: flex;
-      flex-direction: column;
-      gap: 11px;
-    }
-
-    .message {
-      max-width: 86%;
-      padding: 11px 13px;
-      border-radius: 16px;
-      line-height: 1.55;
-      font-size: 14px;
-    }
-
-    .message-text { white-space: pre-wrap; }
-
-    .message.bot {
-      align-self: flex-start;
-      border-bottom-left-radius: 5px;
-      background: var(--green-100);
-    }
-
-    .message.user {
-      align-self: flex-end;
-      border-bottom-right-radius: 5px;
-      color: white;
-      background: var(--green-900);
-    }
-
-    .message-files {
-      margin-top: 10px;
-      display: grid;
-      gap: 8px;
-    }
-
-    .reply-file {
-      overflow: hidden;
-      border: 1px solid #c9d8c8;
-      border-radius: 12px;
-      background: white;
-    }
-
-    .reply-file img {
-      display: block;
-      width: 100%;
-      max-height: 240px;
-      object-fit: contain;
-      background: #152019;
-    }
-
-    .reply-file-meta {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 8px 10px;
-    }
-
-    .reply-file-meta span {
-      min-width: 0;
-      overflow: hidden;
-      color: var(--green-900);
-      font-size: 12px;
-      font-weight: 700;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .reply-file-meta a {
-      flex: 0 0 auto;
-      color: var(--green-700);
-      font-size: 12px;
-      font-weight: 700;
-      text-decoration: none;
-    }
-
-    .reply-file.doc .reply-file-meta {
-      padding: 11px 12px;
-    }
-
-    .notice {
-      margin: 0 14px 10px;
-      color: var(--muted);
-      font-size: 11px;
-    }
-
-    form {
-      padding: 11px 13px 14px;
-      display: flex;
-      gap: 8px;
-      border-top: 1px solid var(--line);
-      background: white;
-    }
-
-    textarea {
-      flex: 1;
-      min-height: 46px;
-      max-height: 110px;
-      resize: none;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 13px;
-      outline: none;
-    }
-
-    textarea:focus { border-color: #78a481; }
-
-    form button {
-      padding: 0 16px;
-      border: 0;
-      border-radius: 13px;
-      color: white;
-      background: var(--green-700);
-      cursor: pointer;
-      font-weight: 700;
-    }
-
-    button:disabled, textarea:disabled {
-      cursor: wait;
-      opacity: .55;
-    }
-
-    @media (max-width: 900px) {
-      body { overflow: auto; }
-      .page { height: auto; min-height: 100%; }
-      main {
-        grid-template-columns: 1fr;
-        grid-template-rows: 540px 520px;
-      }
-    }
-  </style>
+  <meta name="theme-color" content="#f7f5eb">
+  <title>떡구전 - 외떡잎과 쌍떡잎 탐구</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./script.js" defer></script>
 </head>
 <body>
-  <div class="page">
-    <header>
-      <div class="logo" aria-hidden="true">⌁</div>
-      <div>
-        <h1>식물 관찰 학습</h1>
-        <p>사진과 문서를 첨부한 뒤 관찰한 점을 학습 도우미와 이야기해 보세요.</p>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="leaf-mono" viewBox="0 0 140 140"><path d="M68 128C56 108 34 93 32 66 30 35 56 14 109 7 96 24 95 59 83 86 77 101 72 117 68 128Z" fill="#6d9d72" stroke="#3d7751" stroke-width="1.8"/><path d="M68 128C71 100 65 71 109 7M65 116C52 82 45 57 109 7M59 108C42 77 34 49 109 7M77 106C83 82 88 54 109 7M51 95C36 70 30 40 109 7" stroke="#d9ebc8" stroke-width="1.5" fill="none"/><path d="M62 137 68 128" stroke="#456b49" stroke-width="3" stroke-linecap="round"/></symbol><symbol id="leaf-di" viewBox="0 0 140 140"><path d="M66 119C31 123 12 100 18 79 2 65 10 41 24 38 26 16 49 14 62 25 81 3 112 17 114 37 137 41 137 69 124 77 130 100 101 125 66 119Z" fill="#8ba66b" stroke="#52794f" stroke-width="1.8"/><path d="M64 134 70 112 88 28M70 110 35 84 20 79M77 88 114 65M80 68 48 42 24 38M84 50 105 33M53 97 48 75 27 54M48 94 26 103M73 104 99 98 124 77M96 99 104 113M99 77 123 86M57 50 61 30M45 43 34 24M74 91 62 70 53 63M105 70 118 47" stroke="#edf0cf" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M64 134 70 112" stroke="#52794f" stroke-width="3" stroke-linecap="round"/></symbol></defs></svg>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#home"><span class="brand-icon" aria-hidden="true">✿</span><span>떡구전<small>중학교 생명과학 탐구</small></span></a>
+      <nav aria-label="탐구 메뉴">
+        <a href="#home">탐구 홈</a><a href="#observe">관찰 및 비교</a><a href="#lab">AI 탐구실</a><a href="#challenge">예외 사례</a><a href="#guide">개념 학습</a><a href="#journal">나의 탐구 도감</a><a href="#sources">참고 자료</a>
+      </nav>
+      <div class="field-note"><strong>현장 관찰 약속</strong><p>식물을 꺾거나 뽑지 않아요. 보이지 않는 부분은 ‘확인 못함’으로 기록해요.</p></div>
+    </aside>
+    <main class="main" id="main">
+      <div class="topbar"><span id="breadcrumb">탐구 홈</span><span class="connection" id="connection" role="status" data-state="pending">AI 연결 확인 중</span></div>
+      <div class="content">
+        <section id="home" class="view" aria-labelledby="home-title">
+          <header class="hero">
+            <div class="hero-copy">
+              <p class="eyebrow">떡(잎)구(분)전(문가)</p>
+              <h1 id="home-title">떡구전 - <br><em>외떡잎과 쌍떡잎 탐구</em></h1>
+              <p><strong>탐구 미션</strong> 학교 주변에서 식물 한 가지를 찾아보세요. 잎과 꽃에서 단서를 모으고, 떡구전과 함께 내 분류 근거를 점검해요.</p>
+              <div class="actions"><a class="primary" href="#observe">관찰 시작하기</a><a class="secondary" href="#lab">AI 탐구실 가기</a></div>
+            </div>
+            <div class="hero-art" aria-hidden="true">
+              <svg viewBox="0 0 370 280">
+                <circle cx="185" cy="138" r="113" fill="#dce8d3"/>
+                <circle cx="185" cy="138" r="123" fill="none" stroke="#9db994" stroke-dasharray="2 7"/>
+                <circle cx="185" cy="138" r="97" fill="none" stroke="#aac2a2"/>
+                <path d="M22 138h326M185 14v248" stroke="#a6bea0" stroke-dasharray="3 6"/>
+                <use href="#leaf-mono" x="43" y="38" width="153" height="183" transform="rotate(-18 115 135)"/>
+                <use href="#leaf-di" x="155" y="76" width="167" height="182" transform="rotate(16 230 160)"/>
+                <circle cx="63" cy="66" r="4" fill="#b08a53"/><circle cx="303" cy="222" r="3" fill="#b08a53"/>
+              </svg>
+            </div>
+          </header>
+
+          <section id="observe" class="lesson-section" aria-labelledby="observe-title">
+            <header class="section-heading"><p class="eyebrow">1단계</p><h2 id="observe-title">관찰 및 비교</h2><p>사진에 보이는 단서를 표와 비교해 보세요.</p></header>
+            <div class="observation-grid">
+              <div class="card traits-card">
+                <table class="traits">
+                  <caption>외떡잎과 쌍떡잎의 대표 특징</caption>
+                  <thead><tr><th scope="col">관찰 단서</th><th scope="col">외떡잎식물</th><th scope="col">진정쌍떡잎식물</th></tr></thead>
+                  <tbody>
+                    <tr><th scope="row">잎맥</th><td>주로 나란히맥</td><td>주로 그물맥</td></tr>
+                    <tr><th scope="row">꽃잎·화피 수</th><td>주로 3의 배수</td><td>주로 4 또는 5의 배수</td></tr>
+                    <tr><th scope="row">뿌리</th><td>주로 수염뿌리</td><td>주로 원뿌리와 곁뿌리</td></tr>
+                    <tr><th scope="row">줄기 관다발 단면</th><td>대체로 여기저기 흩어짐</td><td>대체로 가장자리에 고리 배열</td></tr>
+                  </tbody>
+                </table>
+                <p class="traits-note">표는 분류군의 일반적인 경향이에요. 뿌리와 줄기 단면은 준비된 표본이나 사진에서 확인해요.</p>
+              </div>
+              <article class="card picture-card" aria-labelledby="photo-title">
+                <h3 id="photo-title">내가 관찰한 식물 사진 올리기</h3>
+                <p>잎 전체와 잎맥이 잘 보이는 사진을 골라요.</p>
+                <label class="upload">
+                  <img id="photo-preview" alt="선택한 식물 사진 미리보기" hidden>
+                  <span id="upload-placeholder" class="upload-icon" aria-hidden="true">＋</span>
+                  <strong id="photo-action">사진 선택하기</strong>
+                  <span id="photo-format">JPG, PNG, WebP 등 · 사진당 최대 13 MB</span>
+                  <input type="file" id="attachments" aria-label="내가 관찰한 식물 사진 올리기" multiple accept="image/png,image/jpeg,image/webp,image/gif,image/bmp">
+                </label>
+                <ul id="file-list" class="file-list" aria-label="첨부한 자료"></ul>
+                <p id="photo-status" class="feedback" role="status"></p>
+              </article>
+            </div>
+          </section>
+
+          <section id="lab" class="lesson-section" aria-labelledby="lab-title">
+          <header class="section-heading"><p class="eyebrow">2단계</p><h2 id="lab-title">AI 에이전트와 탐구하기</h2><p>단서를 기록하고 떡구전에게 질문해 보세요. 마지막에는 새 식물에 같은 기준을 적용해요.</p></header>
+          <nav class="steps" aria-label="탐구 단계" id="steps"></nav>
+          <div class="progress-row"><label for="step-progress" id="step-count">탐구 진행 1 / 5</label><progress id="step-progress" value="1" max="5">1 / 5</progress></div>
+          <div class="lab-grid">
+            <article class="card activity">
+              <section data-stage="observe">
+                <h3 tabindex="-1">식물의 특징 관찰하기</h3>
+                <p>한 식물을 골라 보이는 단서를 적어 보세요. 뿌리와 줄기 단면은 관찰용 표본이나 자료를 사용해요.</p>
+                <label class="field">식물 이름 또는 표본 이름 <input data-field="specimen" maxlength="70" placeholder="예: 화단에서 찾은 식물 A"></label>
+                <div class="evidence-fields" id="evidence-fields"></div>
+              </section>
+              <section data-stage="guess" hidden>
+                <h3 tabindex="-1">내 분류 가설 세우기</h3>
+                <p>지금 관찰한 특징을 바탕으로 어느 쪽일지 추측해요. 확실하지 않다면 판단 보류를 선택해도 좋아요.</p>
+                <label class="field">나의 첫 추측 <select data-field="hypothesis" data-classification></select></label>
+                <label class="field">그렇게 생각한 근거 <textarea data-field="reason" rows="3" maxlength="500" placeholder="어떤 특징이 어느 분류 기준과 맞았나요?"></textarea></label>
+                <div class="callout" id="review-summary"></div>
+                <div class="actions"><button type="button" class="secondary coach-action" data-coach="내 가설의 근거를 함께 검토하고, 먼저 확인할 단서 하나를 질문해 줘.">가설 검토 요청</button></div>
+                <label class="field">검토 뒤 달라진 점 <textarea data-field="revision" rows="2" maxlength="500" placeholder="생각이 달라졌거나 더 확인하고 싶은 점을 적어 보세요."></textarea></label>
+              </section>
+              <section data-stage="exception" hidden>
+                <h3 tabindex="-1">단서가 엇갈리는 식물</h3>
+                <div class="case-card"><strong>표본 B</strong><ul><li>잎의 가는 잎맥은 그물처럼 이어져요.</li><li>꽃에서 꽃잎처럼 보이는 화피 조각이 6개예요.</li></ul></div>
+                <p>두 단서가 가리키는 방향이 다를 때 어떻게 판단할까요?</p>
+                <label class="field">예외 사례 추론 <select data-field="exceptionChoice" data-classification></select></label>
+                <label class="field">판단 근거 또는 추가 관찰 계획 <textarea data-field="exceptionReason" rows="3" maxlength="500"></textarea></label>
+                <div class="actions"><button type="button" class="secondary coach-action" data-check="exception" data-coach="표본 B의 상반된 단서를 함께 따져 보고 내 추론에서 다시 생각할 점을 질문해 줘.">AI와 토의하기</button><button type="button" class="text-button" data-reveal="exception">예외 사례 해설 보기</button></div>
+                <p id="exception-explanation" class="callout" hidden>표본 B는 청미래덩굴속을 바탕으로 구성했어요. 이 외떡잎식물에서는 가는 잎맥이 그물처럼 이어질 수 있어요. 화피 조각 6개는 외떡잎 쪽 단서예요. 예외를 설명하려면 단서를 함께 비교하고 이름표나 추가 자료도 확인해요.</p>
+              </section>
+              <section data-stage="conclusion" hidden>
+                <h3 tabindex="-1">처음 관찰한 식물에 대한 결론</h3>
+                <p>처음 추측과 지금 생각을 비교하고, 근거와 아직 모르는 점을 남겨요.</p>
+                <label class="field">처음 관찰한 식물에 대한 내 결론 <select data-field="conclusion" data-classification></select></label>
+                <label class="field">최종 근거와 아직 모르는 점 <textarea data-field="conclusionReason" rows="3" maxlength="500"></textarea></label>
+              </section>
+              <section data-stage="transfer" hidden>
+                <h3 tabindex="-1">새 식물에 분류 기준 적용하기</h3>
+                <div class="case-card"><strong>새로운 표본 C</strong><p>발아할 때 떡잎이 2개였고, 줄기 단면의 관다발이 고리처럼 배열되어 있어요. 꽃은 아직 보이지 않아요.</p></div>
+                <label class="field">새 식물에 대한 추측 <select data-field="transferChoice" data-classification></select></label>
+                <label class="field">어떤 분류 기준을 적용했나요? <textarea data-field="transferReason" rows="3" maxlength="500"></textarea></label>
+                <div class="actions"><button type="button" class="secondary coach-action" data-check="transfer" data-coach="표본 C에 분류 기준을 적용한 내 근거를 점검하고, 잘한 점과 더 확인할 점을 알려 줘.">AI 피드백 받기</button><button type="button" class="text-button" data-reveal="transfer">새 사례 해설 보기</button></div>
+                <p id="transfer-explanation" class="callout" hidden>떡잎 2개와 고리 모양 관다발은 이 비교에서 쌍떡잎 쪽을 지지해요. 꽃이 피면 꽃 구조를 확인해 근거를 보완할 수 있어요.</p>
+                <label class="field">더 알아보고 싶은 질문 <input data-field="nextQuestion" maxlength="200" placeholder="예: 같은 식물에서도 잎맥이 다르게 보일까?"></label>
+              </section>
+              <div class="lab-footer"><button type="button" id="prev-step" class="text-button">이전 단계</button><button type="button" id="next-step" class="primary">다음 단계</button><button type="button" id="save-record" class="primary" hidden>도감에 기록하기</button></div>
+              <p id="lab-status" class="feedback" role="status"></p>
+            </article>
+            <aside class="card coach" aria-labelledby="coach-title">
+              <div class="coach-head"><span class="coach-mark" aria-hidden="true">✦</span><div><h2 id="coach-title">떡구전</h2><p>AI 식물 분류 도우미</p></div></div>
+              <div class="chat-log" id="chat-log" role="log" aria-label="떡구전과 나눈 대화"></div>
+              <div class="chat-actions" aria-label="바로 질문하기"><button type="button" class="text-button coach-action" data-coach="잎맥이 나란히 나 있어요">잎맥이 나란히 나 있어요</button><button type="button" class="text-button coach-action" data-coach="그물처럼 얽혀 있어요">그물처럼 얽혀 있어요</button><button type="button" class="text-button coach-action" data-coach="꽃잎 수를 세어봤어요">꽃잎 수를 세어봤어요</button></div>
+              <form id="chat-form"><label class="sr-only" for="chat-input">떡구전에게 질문</label><textarea id="chat-input" rows="2" maxlength="1800" placeholder="관찰한 점이나 궁금한 점을 적어 보세요."></textarea><button class="primary" type="submit">보내기</button></form>
+              <details class="document-picker"><summary>문서 자료 첨부</summary><label class="field">문서 선택 <input type="file" id="documents" multiple accept=".txt,.md,.csv,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"></label><ul class="file-list" id="document-list" aria-label="첨부한 문서"></ul></details>
+              <p class="chat-note" id="chat-note">AI 연결 상태를 확인하고 있어요.</p>
+              <p class="feedback" id="chat-status" role="status"></p>
+            </aside>
+          </div>
+          </section>
+
+          <section id="challenge" class="lesson-section" aria-labelledby="challenge-title">
+            <header class="section-heading"><p class="eyebrow">3단계</p><h2 id="challenge-title">예외 사례 토의 챌린지</h2><p>겉모양만 보고 내린 판단이 맞는지 두 식물을 비교해 봐요.</p></header>
+            <div class="challenge-grid">
+              <article class="card challenge-card">
+                <p class="challenge-clue">단서 · 굵고 단단한 줄기</p>
+                <h3>대나무</h3>
+                <p>나무처럼 굵고 단단한 줄기가 있어요.</p>
+                <p class="challenge-question">“줄기가 굵으면 모두 쌍떡잎식물일까요? 줄기 굵기와 관다발의 배열은 각각 어떻게 확인할 수 있나요?”</p>
+                <details><summary>비교 근거 보기</summary><p>대나무는 벼과의 외떡잎식물이에요. 줄기의 관다발 배열은 단면 사진에서 확인할 수 있어요.</p></details>
+              </article>
+              <article class="card challenge-card">
+                <p class="challenge-clue">단서 · 나란히 보이는 잎맥</p>
+                <h3>질경이</h3>
+                <p>굵은 잎맥이 잎 밑에서 끝 쪽으로 나란히 뻗어 보일 수 있어요.</p>
+                <p class="challenge-question">“잎맥만 봤을 때 어떤 추측이 드나요? 꽃부리 끝이 네 갈래라면 어떤 단서를 더 확인할까요?”</p>
+                <details><summary>비교 근거 보기</summary><p>질경이는 진정쌍떡잎식물이에요. 큰 잎맥 사이의 작은 맥과 작은 꽃 하나의 구조를 함께 살펴봐요.</p></details>
+              </article>
+            </div>
+          </section>
+        </section>
+
+        <section id="guide" class="view" hidden aria-labelledby="guide-title">
+          <header class="page-heading"><p class="eyebrow">개념 학습</p><h1 id="guide-title">분류 기준 한눈에 보기</h1><p>두 식물군에서 흔히 볼 수 있는 특징을 비교해요.</p></header>
+          <div class="guide-grid">
+            <article class="card guide"><svg viewBox="0 0 140 140" role="img" aria-label="나란히맥 잎 그림"><use href="#leaf-mono"/></svg><div><h2>외떡잎식물</h2><dl><dt>떡잎</dt><dd>1개</dd><dt>잎맥</dt><dd>주로 나란히맥</dd><dt>꽃 기관</dt><dd>주로 3의 배수</dd><dt>뿌리</dt><dd>주로 수염뿌리</dd><dt>줄기 관다발</dt><dd>대체로 흩어짐</dd></dl></div></article>
+            <article class="card guide"><svg viewBox="0 0 140 140" role="img" aria-label="그물맥 잎 그림"><use href="#leaf-di"/></svg><div><h2>진정쌍떡잎식물</h2><dl><dt>떡잎</dt><dd>보통 2개</dd><dt>잎맥</dt><dd>주로 그물맥</dd><dt>꽃 기관</dt><dd>주로 4 또는 5의 배수</dd><dt>뿌리</dt><dd>주로 원뿌리와 곁뿌리</dd><dt>줄기 관다발</dt><dd>대체로 고리 배열</dd></dl></div></article>
+          </div>
+          <p class="callout">수업에서는 쌍떡잎의 대표 사례로 진정쌍떡잎식물을 비교해요. 이 특징들은 일반적인 경향이에요. 단서가 서로 다르면 여러 특징을 함께 살펴봐요.</p>
+        </section>
+
+        <section id="journal" class="view" hidden aria-labelledby="journal-title">
+          <header class="page-heading"><p class="eyebrow">탐구 기록</p><h1 id="journal-title">나의 탐구 도감</h1><p>나의 추측, 근거, 결론을 돌아보세요. 기록은 이 브라우저에 저장돼요.</p></header>
+          <div class="journal-list" id="journal-list"></div>
+          <p class="feedback" id="journal-status" role="status"></p>
+          <div class="actions"><a class="secondary" href="#lab" id="continue-record">현재 탐구 계속하기</a><button type="button" id="new-record" class="primary">새 식물 탐구하기</button></div>
+        </section>
+
+        <section id="sources" class="view" hidden aria-labelledby="sources-title">
+          <header class="page-heading"><p class="eyebrow">참고 자료</p><h1 id="sources-title">더 읽어 보기</h1><p>예외 사례와 잎맥이 만들어지는 과정을 알아볼 수 있어요.</p></header>
+          <div class="source-list">
+            <article class="card"><h2>청미래덩굴속과 잎맥</h2><p>Royal Botanic Gardens, Kew · Plants of the World Online</p><a href="https://powo.science.kew.org/taxon/urn:lsid:ipni.org:names:77126730-1/general-information" target="_blank" rel="noopener">Smilacaceae의 잎맥과 꽃 특징 ↗</a></article>
+            <article class="card"><h2>잎맥의 구조와 형성</h2><ul><li><a href="https://doi.org/10.1111/nph.16830" target="_blank" rel="noopener">Blonder 외 (2020) · 잎맥 네트워크와 식물의 기능 ↗</a></li><li><a href="https://doi.org/10.1371/journal.pbio.3001781" target="_blank" rel="noopener">Linh &amp; Scarpella (2022) · 잎맥 패턴 형성 ↗</a></li><li><a href="https://doi.org/10.1073/pnas.2402514121" target="_blank" rel="noopener">Perico 외 (2024) · 옥수수 잎에서 잎맥의 발달 ↗</a></li></ul></article>
+          </div>
+        </section>
       </div>
-    </header>
-
-    <main>
-      <section class="panel" aria-label="관찰 자료">
-        <div class="panel-head">
-          <h2>관찰 자료</h2>
-          <span class="badge" id="photoCount">자료 0개</span>
-        </div>
-        <div class="photo-body">
-          <div class="stage" id="stage">
-            <div class="empty" id="emptyState">
-              <strong>관찰할 사진이나 문서를 선택하세요</strong>
-              사진, 워드, 파워포인트, 엑셀, 텍스트 파일을 추가하거나 이곳으로 끌어다 놓을 수 있습니다.
-            </div>
-            <img id="preview" alt="선택한 식물 사진">
-            <div class="doc-preview" id="docPreview">
-              <span class="ext" id="docExt">FILE</span>
-              <strong id="docTitle"></strong>
-              <p>보내기를 누르면 이 파일이 AI에게 전달됩니다.</p>
-            </div>
-            <div class="caption">
-              <span id="photoName"></span>
-              <span id="photoPosition"></span>
-            </div>
-          </div>
-          <div class="thumbs" id="thumbs">
-            <button class="add-photo" id="addPhoto" type="button">
-              <b>+</b><span>자료 추가</span>
-            </button>
-          </div>
-          <input id="fileInput" type="file" accept="image/*,.txt,.md,.csv,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple>
-        </div>
-      </section>
-
-      <section class="panel" aria-label="관찰 채팅">
-        <div class="panel-head">
-          <h2>관찰 대화</h2>
-          <span class="badge error" id="status">연결 확인 중</span>
-        </div>
-        <div class="chat-body">
-          <div class="messages" id="messages"></div>
-          <p class="notice">선택한 사진과 문서는 질문과 함께 AI로 전송되며, AI가 만든 파일도 답변에서 받아볼 수 있습니다.</p>
-          <form id="chatForm">
-            <textarea id="chatInput" rows="1" placeholder="관찰한 점이나 궁금한 점을 입력하세요"></textarea>
-            <button id="sendButton" type="submit">보내기</button>
-          </form>
-        </div>
-      </section>
     </main>
   </div>
-
-  <script>
-    const stage = document.getElementById("stage");
-    const preview = document.getElementById("preview");
-    const docExt = document.getElementById("docExt");
-    const docTitle = document.getElementById("docTitle");
-    const thumbs = document.getElementById("thumbs");
-    const fileInput = document.getElementById("fileInput");
-    const photoCount = document.getElementById("photoCount");
-    const photoName = document.getElementById("photoName");
-    const photoPosition = document.getElementById("photoPosition");
-    const messages = document.getElementById("messages");
-    const status = document.getElementById("status");
-    const chatForm = document.getElementById("chatForm");
-    const chatInput = document.getElementById("chatInput");
-    const sendButton = document.getElementById("sendButton");
-
-    const DOCUMENT_EXTS = [".txt", ".md", ".csv", ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx"];
-    const MAX_ITEMS = 10;
-    const items = [];
-    let selectedId = null;
-    let sending = false;
-    const sessionId = getSessionId();
-
-    addMessage(
-      "안녕! 식물을 자세히 관찰해 보자. 사진이나 문서를 첨부하면 그 자료를 직접 보고 함께 생각해 볼게.",
-      "bot",
-    );
-    checkConnection();
-
-    document.getElementById("addPhoto").addEventListener("click", () => {
-      fileInput.click();
-    });
-    fileInput.addEventListener("change", (event) => {
-      addFiles(event.target.files);
-      fileInput.value = "";
-    });
-
-    ["dragenter", "dragover"].forEach((type) => {
-      stage.addEventListener(type, (event) => {
-        event.preventDefault();
-        stage.classList.add("drag");
-      });
-    });
-    ["dragleave", "drop"].forEach((type) => {
-      stage.addEventListener(type, (event) => {
-        event.preventDefault();
-        stage.classList.remove("drag");
-      });
-    });
-    stage.addEventListener("drop", (event) => addFiles(event.dataTransfer.files));
-
-    function fileExt(name) {
-      const match = String(name || "").toLowerCase().match(/\.[a-z0-9]+$/);
-      return match ? match[0] : "";
-    }
-
-    function isImageFile(file) {
-      return file.type.startsWith("image/");
-    }
-
-    function isDocumentFile(file) {
-      return DOCUMENT_EXTS.includes(fileExt(file.name));
-    }
-
-    function addFiles(fileList) {
-      const accepted = [...fileList].filter((file) => isImageFile(file) || isDocumentFile(file));
-      if (!accepted.length) return;
-
-      let added = 0;
-      for (const file of accepted) {
-        if (items.length >= MAX_ITEMS) break;
-        const image = isImageFile(file);
-        items.push({
-          id: crypto.randomUUID(),
-          name: file.name,
-          mime: file.type || (image ? "image/jpeg" : "application/octet-stream"),
-          kind: image ? "image" : "document",
-          file,
-          url: image ? URL.createObjectURL(file) : "",
-        });
-        added += 1;
-      }
-      if (added) selectItem(items[items.length - 1].id);
-    }
-
-    function selectItem(id) {
-      const item = items.find((entry) => entry.id === id);
-      if (!item) return;
-      selectedId = id;
-
-      if (item.kind === "image") {
-        preview.src = item.url;
-        stage.classList.add("filled");
-        stage.classList.remove("has-file");
-      } else {
-        preview.removeAttribute("src");
-        docExt.textContent = fileExt(item.name).replace(".", "").toUpperCase() || "FILE";
-        docTitle.textContent = item.name;
-        stage.classList.remove("filled");
-        stage.classList.add("has-file");
-      }
-      renderItems();
-    }
-
-    function removeItem(id) {
-      const index = items.findIndex((entry) => entry.id === id);
-      if (index < 0) return;
-      if (items[index].url) URL.revokeObjectURL(items[index].url);
-      items.splice(index, 1);
-
-      if (!items.length) {
-        selectedId = null;
-        preview.removeAttribute("src");
-        stage.classList.remove("filled", "has-file");
-        renderItems();
-      } else if (selectedId === id) {
-        selectItem(items[Math.min(index, items.length - 1)].id);
-      } else {
-        renderItems();
-      }
-    }
-
-    function renderItems() {
-      thumbs.querySelectorAll(".thumb").forEach((item) => item.remove());
-      photoCount.textContent = `자료 ${items.length}개`;
-
-      for (const item of items) {
-        const button = document.createElement("div");
-        button.className = `thumb${item.kind === "document" ? " doc" : ""}${item.id === selectedId ? " active" : ""}`;
-        button.setAttribute("role", "button");
-        button.setAttribute("tabindex", "0");
-        button.setAttribute("aria-label", `${item.name} 선택`);
-
-        if (item.kind === "image") {
-          const image = document.createElement("img");
-          image.src = item.url;
-          image.alt = "";
-          button.append(image);
-        } else {
-          const ext = document.createElement("span");
-          ext.className = "ext";
-          ext.textContent = fileExt(item.name).replace(".", "").toUpperCase() || "FILE";
-          const fname = document.createElement("span");
-          fname.className = "fname";
-          fname.textContent = item.name;
-          button.append(ext, fname);
-        }
-
-        const remove = document.createElement("button");
-        remove.type = "button";
-        remove.className = "remove";
-        remove.textContent = "×";
-        remove.setAttribute("aria-label", `${item.name} 삭제`);
-        remove.addEventListener("click", (event) => {
-          event.stopPropagation();
-          removeItem(item.id);
-        });
-
-        button.append(remove);
-        button.addEventListener("click", () => selectItem(item.id));
-        button.addEventListener("keydown", (event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            selectItem(item.id);
-          }
-        });
-        thumbs.appendChild(button);
-      }
-
-      const selected = items.find((item) => item.id === selectedId);
-      photoName.textContent = selected?.name || "";
-      photoPosition.textContent = selected
-        ? `${items.indexOf(selected) + 1} / ${items.length}`
-        : "";
-    }
-
-    chatForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const message = chatInput.value.trim();
-      if (sending || (!message && !items.length)) return;
-
-      const display = message
-        ? (items.length ? `${message}\n\n첨부 ${items.length}개: ${items.map((item) => item.name).join(", ")}` : message)
-        : `첨부 ${items.length}개: ${items.map((item) => item.name).join(", ")}`;
-      addMessage(display, "user");
-      chatInput.value = "";
-      setSending(true);
-      const waiting = addMessage("답변을 생각하고 있어요…", "bot");
-
-      try {
-        const attachments = await Promise.all(items.map((item) => toAttachment(item)));
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message, sessionId, attachments }),
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "채팅 요청에 실패했습니다.");
-        setBotReply(waiting, data.textResponse, data.files);
-        setStatus(true, "AnythingLLM 연결됨");
-      } catch (error) {
-        waiting.textContent = `연결 오류: ${error.message}`;
-        setStatus(false, "연결 오류");
-      } finally {
-        setSending(false);
-        chatInput.focus();
-      }
-    });
-
-    async function toAttachment(item) {
-      if (item.kind === "image") {
-        const contentString = await compressImage(item.file);
-        return {
-          name: replaceExt(item.name, contentString.startsWith("data:image/jpeg") ? ".jpg" : fileExt(item.name) || ".png"),
-          mime: contentString.startsWith("data:image/jpeg") ? "image/jpeg" : (item.mime || "image/png"),
-          contentString,
-        };
-      }
-      return {
-        name: item.name,
-        mime: item.mime || "application/octet-stream",
-        contentString: await readAsDataUrl(item.file),
-      };
-    }
-
-    function replaceExt(name, ext) {
-      return name.replace(/\.[a-z0-9]+$/i, "") + ext;
-    }
-
-    function readAsDataUrl(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error("파일을 읽지 못했습니다."));
-        reader.readAsDataURL(file);
-      });
-    }
-
-    async function compressImage(file, maxSize = 1280, quality = 0.82) {
-      if (file.type === "image/svg+xml") return readAsDataUrl(file);
-      const objectUrl = URL.createObjectURL(file);
-      try {
-        const image = await loadImage(objectUrl);
-        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(image.width * scale));
-        canvas.height = Math.max(1, Math.round(image.height * scale));
-        const context = canvas.getContext("2d");
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        return canvas.toDataURL("image/jpeg", quality);
-      } catch {
-        return readAsDataUrl(file);
-      } finally {
-        URL.revokeObjectURL(objectUrl);
-      }
-    }
-
-    function loadImage(url) {
-      return new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-        image.src = url;
-      });
-    }
-
-    chatInput.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        chatForm.requestSubmit();
-      }
-    });
-
-    function addMessage(text, role) {
-      const element = document.createElement("div");
-      element.className = `message ${role}`;
-      const body = document.createElement("div");
-      body.className = "message-text";
-      body.textContent = text;
-      element.appendChild(body);
-      messages.appendChild(element);
-      messages.scrollTop = messages.scrollHeight;
-      return element;
-    }
-
-    function setBotReply(element, text, files) {
-      element.replaceChildren();
-      const body = document.createElement("div");
-      body.className = "message-text";
-      body.textContent = text || "";
-      element.appendChild(body);
-
-      const safeFiles = Array.isArray(files) ? files.filter(isSafeReplyFile) : [];
-      if (!safeFiles.length) {
-        messages.scrollTop = messages.scrollHeight;
-        return;
-      }
-
-      const list = document.createElement("div");
-      list.className = "message-files";
-      for (const file of safeFiles) {
-        list.appendChild(renderReplyFile(file));
-      }
-      element.appendChild(list);
-      messages.scrollTop = messages.scrollHeight;
-    }
-
-    function isSafeReplyFile(file) {
-      if (!file || typeof file.name !== "string" || typeof file.url !== "string") return false;
-      if (file.url.startsWith("/api/files/")) return true;
-      return /^(data:image\/|data:application\/|data:text\/plain|data:text\/csv|data:text\/markdown)/i.test(file.url);
-    }
-
-    function renderReplyFile(file) {
-      const card = document.createElement("div");
-      card.className = `reply-file${file.kind === "image" ? "" : " doc"}`;
-
-      if (file.kind === "image") {
-        const image = document.createElement("img");
-        image.src = file.url;
-        image.alt = file.name;
-        card.appendChild(image);
-      }
-
-      const meta = document.createElement("div");
-      meta.className = "reply-file-meta";
-      const label = document.createElement("span");
-      label.textContent = file.name;
-      const link = document.createElement("a");
-      link.href = file.url;
-      link.download = file.name;
-      link.textContent = "다운로드";
-      meta.append(label, link);
-      card.appendChild(meta);
-      return card;
-    }
-
-    async function checkConnection() {
-      try {
-        const response = await fetch("/api/health");
-        const data = await response.json().catch(() => ({}));
-        setStatus(response.ok, response.ok ? "AnythingLLM 연결됨" : data.error || "설정 필요");
-      } catch {
-        setStatus(false, "로컬 서버 연결 오류");
-      }
-    }
-
-    function setStatus(connected, text) {
-      status.textContent = text;
-      status.classList.toggle("error", !connected);
-      status.title = text;
-    }
-
-    function setSending(value) {
-      sending = value;
-      chatInput.disabled = value;
-      sendButton.disabled = value;
-      fileInput.disabled = value;
-      document.getElementById("addPhoto").disabled = value;
-    }
-
-    function getSessionId() {
-      const key = "plant-observation-session";
-      let value = localStorage.getItem(key);
-      if (!value) {
-        value = crypto.randomUUID();
-        localStorage.setItem(key, value);
-      }
-      return value;
-    }
-  </script>
 </body>
 </html>

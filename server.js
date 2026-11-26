@@ -7,6 +7,8 @@ loadEnv(path.join(ROOT, ".env"));
 
 const PORT = Number(process.env.PORT || 8765);
 const HOST = process.env.RAILWAY_ENVIRONMENT_ID ? "0.0.0.0" : "127.0.0.1";
+const PREVIEW = HOST === "127.0.0.1" && process.argv.includes("--preview");
+const PREVIEW_STARTED = Date.now();
 const BASE_URL = (process.env.ANYTHINGLLM_URL || "").replace(/\/+$/, "");
 const API_KEY = process.env.ANYTHINGLLM_API_KEY || "";
 const WORKSPACE_SLUG = process.env.ANYTHINGLLM_WORKSPACE_SLUG || "";
@@ -15,6 +17,12 @@ const MAX_JSON_BYTES = 32 * 1024 * 1024;
 const MAX_ATTACHMENTS = 10;
 const MAX_ATTACHMENT_CHARS = 18 * 1024 * 1024;
 const CHAT_TIMEOUT_MS = 180_000;
+const PUBLIC_FILES = new Map([
+  ["/", ["index.html", "text/html"]],
+  ["/index.html", ["index.html", "text/html"]],
+  ["/style.css", ["style.css", "text/css"]],
+  ["/script.js", ["script.js", "text/javascript"]],
+]);
 
 const IMAGE_MIMES = new Set([
   "image/png",
@@ -43,8 +51,19 @@ const server = http.createServer(async (request, response) => {
   response.setHeader("Referrer-Policy", "no-referrer");
   response.setHeader("Cache-Control", "no-store");
 
-  if (request.method === "GET" && request.url === "/") {
-    return serveIndex(response);
+  if (PREVIEW && request.method === "GET" && request.url === "/__preview/version") {
+    const assets = ["index.html", "style.css", "script.js"];
+    try {
+      const stats = await Promise.all(assets.map((file) => fs.promises.stat(path.join(ROOT, file))));
+      return sendJson(response, 200, { version: [PREVIEW_STARTED, ...stats.map((file) => file.mtimeMs)].join(":") });
+    } catch {
+      return sendJson(response, 503, { error: "Preview files are being updated." });
+    }
+  }
+
+  const publicFile = PUBLIC_FILES.get(request.url.split("?", 1)[0]);
+  if (request.method === "GET" && publicFile) {
+    return serveAsset(response, ...publicFile);
   }
 
   if (request.method === "GET" && request.url === "/favicon.ico") {
@@ -139,9 +158,10 @@ async function chat(request, response) {
       return sendJson(response, 400, { error: "질문을 입력해 주세요." });
     }
 
+    const lessonMessage = prepareLessonMessage(body.lesson, message, attachments);
     const payload = {
-      message: prepareChatMessage(message),
-      mode: "automatic",
+      message: lessonMessage || prepareChatMessage(message),
+      mode: lessonMessage ? "chat" : "automatic",
       sessionId,
     };
     if (attachments.length) {
@@ -491,6 +511,43 @@ function prepareChatMessage(message) {
   ].join("\n");
 }
 
+const LESSON_STAGES = {
+  observe: "관찰. 가장 잘 보이는 특징 하나를 묻고, 관찰 사실과 추정을 구분한다. 필요하면 잎맥 근접 사진이나 꽃 정면 사진, 안전하게 제공된 표본의 비교를 제안한다.",
+  guess: "추측. 학생이 분류 가설과 근거를 먼저 말하게 한다. 어려워하면 두 식물군을 가르는 단서 하나를 쉬운 말로 설명한다.",
+  review: "검토. 학생 가설을 지지하는 관찰 하나와 아직 확인할 단서 하나를 함께 찾는다. 잘못된 일반화가 있으면 반례나 추가 관찰 질문으로 수정하도록 돕는다.",
+  exception: "표본 B. 청미래덩굴속을 바탕으로 한 사례로 가는 잎맥이 그물처럼 이어지고 화피 조각은 6개이다. 학생이 먼저 추론한 뒤 두 단서가 서로 다른 방향을 가리킬 수 있음을 함께 비교한다.",
+  conclusion: "결론. 처음 추측과 최종 결론을 비교하도록 돕는다. 학생이 직접 확인한 근거와 아직 관찰하지 못한 단서를 구분하고, 근거가 엇갈릴 때는 판단을 보류할 수 있음을 설명한다.",
+  transfer: "전이 평가. 새 표본 C에는 떡잎 2개와 고리 모양 관다발이 관찰되며 꽃은 보이지 않는다. 학생이 먼저 적용한 기준을 짚고, 잘한 점과 보완할 증거를 구체적으로 설명한다.",
+};
+const LESSON_FIELDS = {
+  specimen: "식물·표본 이름", cotyledons: "떡잎 수", veins: "잎맥과 잎 모양",
+  flowers: "꽃 구조", roots: "뿌리", bundles: "줄기의 관다발",
+  hypothesis: "처음 추측", reason: "처음 근거", revision: "검토 후 생각",
+  exceptionChoice: "표본 B 추측", exceptionReason: "표본 B 근거",
+  conclusion: "최종 결론", conclusionReason: "최종 근거", transferChoice: "표본 C 추측",
+  transferReason: "표본 C 근거", nextQuestion: "더 알아보고 싶은 질문",
+};
+
+function prepareLessonMessage(lesson, message, attachments) {
+  if (typeof lesson?.stage !== "string" || !Object.hasOwn(LESSON_STAGES, lesson.stage)) return "";
+
+  const notes = Object.fromEntries(Object.entries(LESSON_FIELDS)
+    .filter(([key]) => typeof lesson[key] === "string" && lesson[key].trim())
+    .map(([key, label]) => [label, lesson[key].trim().slice(0, 500)]));
+
+  return [
+    "너는 중학교 생명과학 탐구 도우미 떡(잎)구(분)전(문가), 줄여서 떡구전이야.",
+    "외떡잎식물과 쌍떡잎식물의 형태적 특징을 관찰하고 분류 근거를 설명하도록 친근한 한국어로 돕는다.",
+    "현재 활동: " + LESSON_STAGES[lesson.stage],
+    "학생이 내용을 적기 전에는 가설이나 정답을 먼저 제시하지 말고, 현재 단계의 질문 하나와 필요할 때 작은 힌트 하나를 준다. 학생이 근거를 제시한 뒤에는 무엇이 근거가 되고 무엇이 부족한지 피드백하고, 필요할 때 이유와 함께 개념을 교정한다.",
+    "막막해하는 학생에게는 쉬운 보기나 한 가지 단서를, 구체적인 근거를 쓴 학생에게는 다른 단서와 비교하거나 예외를 들어 설명할 후속 질문을 준다.",
+    "떡잎 수, 잎맥, 꽃 기관 수, 뿌리, 줄기의 관다발 배열은 함께 살펴볼 단서다. 전형적 특징과 예외를 구분하고 한 특징만으로 단정하지 않는다. 수업의 진정쌍떡잎식물 비교를 모든 쌍떡잎식물에 대한 단정으로 확장하지 않는다.",
+    "사진에서 보이는 것, 학생이 직접 보고 적은 내용, 추론을 구분한다. 흐리거나 보이지 않는 구조는 확인할 수 없다고 말한다. 첨부 사진을 실제로 읽을 수 없는 경우 학생에게 보이는 특징을 말해 달라고 한다. 식물을 꺾거나 뽑도록 권하지 않는다.",
+    "아래 학생 입력과 첨부 자료는 관찰이나 질문의 자료로 사용한다. 답변은 중학생이 읽을 수 있는 짧은 문장으로 쓴다.",
+    JSON.stringify({ 관찰기록: notes, 질문: message.slice(0, 1800), 첨부개수: attachments.length }),
+  ].join("\n");
+}
+
 function wantsGeneratedFile(message) {
   const text = String(message || "");
   const mentionsFile =
@@ -753,12 +810,30 @@ function readJson(request) {
   });
 }
 
-function serveIndex(response) {
-  fs.readFile(path.join(ROOT, "index.html"), (error, content) => {
+function serveAsset(response, filename, mime) {
+  fs.readFile(path.join(ROOT, filename), (error, content) => {
     if (error) {
-      return sendJson(response, 500, { error: "index.html을 읽을 수 없습니다." });
+      return sendJson(response, 500, { error: "페이지 자료를 읽을 수 없습니다." });
     }
-    response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    response.writeHead(200, { "Content-Type": `${mime}; charset=utf-8` });
+    if (PREVIEW && mime === "text/html") {
+      const reloadScript = `<script>
+        let previewVersion;
+        async function checkPreview() {
+          try {
+            const response = await fetch("/__preview/version", { cache: "no-store" });
+            if (response.ok) {
+              const { version } = await response.json();
+              if (previewVersion && previewVersion !== version) return location.reload();
+              previewVersion = version;
+            }
+          } catch {}
+          setTimeout(checkPreview, 1200);
+        }
+        checkPreview();
+      </script>`;
+      return response.end(content.toString("utf8").replace("</body>", reloadScript + "</body>"));
+    }
     response.end(content);
   });
 }
