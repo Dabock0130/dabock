@@ -110,8 +110,24 @@ textarea { resize: vertical }
 @media (max-width: 480px) { .organ-grid { grid-template-columns: minmax(0, 1fr) } }
 .coach-head { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line) }
 .coach-head p { margin: 2px 0 0; font-size: 12px }
+.chat-toggle { flex: none; margin-inline-start: auto; min-height: 34px; white-space: nowrap }
+#lab.is-chat-collapsed { padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)) }
+.is-chat-collapsed .lab-grid { grid-template-columns: minmax(0, 1fr) }
+.is-chat-collapsed .lab-grid > .coach {
+  position: fixed; z-index: 5; inset: auto max(14px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) auto;
+  width: min(100% - 28px, 320px); padding: 8px 11px; box-shadow: 0 5px 22px #263a2d26;
+}
+.is-chat-collapsed .coach-head { padding: 0; border: 0 }
+.is-chat-collapsed .coach-avatar { width: 36px; height: 36px; border-radius: 8px }
+.is-chat-collapsed .coach-head h2 { font-size: 1rem }
+.is-chat-collapsed .coach-head p { display: none }
 .coach-avatar { flex: none; width: 66px; height: 66px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff }
 .coach-avatar img { display: block; width: 100%; height: 100%; object-fit: contain }
+@media (max-width: 420px) {
+  .coach-avatar { width: 46px; height: 46px }
+  .coach-head { gap: 7px }
+  .chat-toggle { padding-inline: 7px; font-size: .76rem }
+}
 .chat-toolbar { display: flex; justify-content: flex-end; margin-top: 10px }
 .chat-toolbar button { min-height: 34px }
 .chat-log { margin: 11px 0; padding: 2px 3px; min-height: 144px; max-height: 385px; display: flex; flex-direction: column; gap: 9px; overflow: auto }

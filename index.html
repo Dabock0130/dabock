@@ -63,7 +63,8 @@
                 <p>지금 관찰한 특징을 바탕으로 어느 쪽일지 추측해요. 확실하지 않다면 판단 보류를 선택해도 좋아요.</p>
                 <label class="field">나의 첫 추측 <select data-field="hypothesis" data-classification></select></label>
                 <label class="field">그렇게 생각한 근거 <textarea data-field="reason" rows="3" maxlength="500" placeholder="어떤 특징이 어느 분류 기준과 맞았나요?"></textarea></label>
-                <div class="actions"><button type="button" class="secondary coach-action" data-coach="이미 적은 관찰과 가설을 참고해서, 내 근거를 스스로 점검할 수 있는 질문 하나를 해 줘.">가설 검토 요청</button></div>
+                <div class="actions"><button type="button" class="secondary coach-action" id="review-hypothesis">가설 검토 요청</button></div>
+                <p id="hypothesis-status" class="feedback" role="status"></p>
                 <label class="field">검토 뒤 달라진 점 <textarea data-field="revision" rows="2" maxlength="500" placeholder="생각이 달라졌거나 더 확인하고 싶은 점을 적어 보세요."></textarea></label>
               </section>
               <section class="card activity">
@@ -83,7 +84,9 @@
                   <img src="./assets/tteokgujeon-praise.jpg" width="64" height="64" data-expression="praise" alt="엄지를 들고 칭찬하는 떡구전" hidden>
                 </div>
                 <div><h2 id="coach-title">떡구전</h2><p>AI 식물 분류 도우미</p><p id="mode-indicator" class="mode-indicator" aria-live="polite">학습 모드 선택 전</p></div>
+                <button type="button" class="secondary chat-toggle" id="chat-toggle" aria-controls="coach-body" aria-expanded="true"><span id="chat-toggle-icon" aria-hidden="true">▼</span><span id="chat-toggle-label">채팅창 내리기</span></button>
               </div>
+              <div id="coach-body">
               <fieldset class="mode-picker" id="mode-picker">
                 <legend>AI 학습 모드 선택</legend>
                 <div class="mode-cards">
@@ -99,6 +102,7 @@
               <details class="document-picker"><summary>문서 자료 첨부</summary><label class="field">문서 선택 <input type="file" id="documents" multiple accept=".txt,.md,.csv,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"></label><ul class="file-list" id="document-list" aria-label="첨부한 문서"></ul></details>
               <p class="chat-note" id="chat-note">AI 연결 상태를 확인하고 있어요.</p>
               <p class="feedback" id="chat-status" role="status"></p>
+              </div>
               </div>
             </aside>
           </div>

@@ -13,8 +13,8 @@ const classifications = ["", "외떡잎식물로 추정", "쌍떡잎식물로 �
 const views = { home: "탐구 홈", lab: "탐구학습", additional: "추가학습", guide: "개념학습", journal: "나의 탐구 도감", sources: "참고 자료" };
 const modeNames = { field: "현장 모드", desk: "책상 앞 모드" };
 const modeHints = {
-  field: "식물을 직접 살펴보자. 지금 가장 또렷하게 보이는 특징은 뭐야?",
-  desk: "이미 받은 사진이나 자료를 함께 살펴보자. 먼저 확인할 수 있는 특징 하나가 뭐야?",
+  field: "식물을 직접 살펴보자. 잎맥은 나란히 뻗어 있니, 그물처럼 이어져 있니?",
+  desk: "이미 받은 사진이나 자료를 함께 살펴보자. 잎에서 어떤 모양의 잎맥이 보여?",
 };
 const offlineHints = {
   field: {
@@ -321,6 +321,45 @@ $("mode-picker").addEventListener("change", (event) => {
   renderMode();
 });
 $("go-to-coach").addEventListener("click", focusMode);
+const chatToggle = $("chat-toggle");
+chatToggle.addEventListener("click", () => {
+  const expanded = $("coach-body").hidden;
+  setChatExpanded(expanded);
+  if (expanded) chatToggle.scrollIntoView({ block: "nearest" });
+});
+
+function setChatExpanded(expanded) {
+  $("coach-body").hidden = !expanded;
+  $("lab").classList.toggle("is-chat-collapsed", !expanded);
+  chatToggle.setAttribute("aria-expanded", String(expanded));
+  $("chat-toggle-icon").textContent = expanded ? "▼" : "▲";
+  $("chat-toggle-label").textContent = expanded ? "채팅창 내리기" : "채팅창 열기";
+  if (expanded) {
+    const log = $("chat-log");
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+$("review-hypothesis").addEventListener("click", () => {
+  if (busy || reading || saving) return;
+  const status = $("hypothesis-status");
+  const missing = !fieldValue("hypothesis") ? "hypothesis" : !fieldValue("reason") ? "reason" : "";
+  if (missing) {
+    status.textContent = "첫 추측을 선택하고 그렇게 생각한 근거를 적어 주세요.";
+    fields.find((field) => field.dataset.field === missing).focus();
+    return;
+  }
+  if (!learningMode) {
+    status.textContent = "AI 학습 모드를 선택한 뒤 가설 검토를 요청해 주세요.";
+    focusMode();
+    return;
+  }
+  status.textContent = "";
+  setChatExpanded(true);
+  $("chat-input").focus();
+  send("작성한 분류 가설과 근거를 검토해 줘.", true);
+});
+
 $("reset-chat").addEventListener("click", () => {
   if (!learningMode || busy || reading || saving) return;
   chats.clear();
@@ -330,6 +369,7 @@ $("reset-chat").addEventListener("click", () => {
   $("chat-input").focus();
 });
 function focusMode() {
+  setChatExpanded(true);
   const choice = $("mode-picker").querySelector("input:checked") || $("mode-picker").querySelector("input");
   choice.focus();
 }
@@ -391,7 +431,7 @@ function renderChatNote() {
     : "보내기를 누르면 질문과 탐구 기록, 선택한 사진·문서가 AnythingLLM에 전달돼요.";
 }
 
-async function send(message) {
+async function send(message, reviewRequested = false) {
   if (!message || busy || reading) return;
   if (!learningMode) {
     focusMode();
@@ -431,7 +471,7 @@ async function send(message) {
       body: JSON.stringify({
         message,
         sessionId: chat.id,
-        lesson: { ...plantValues(), stage: "learn", learningMode },
+        lesson: { ...plantValues(), stage: "learn", learningMode, reviewRequested },
         attachments,
       }),
     });
@@ -617,6 +657,7 @@ function resetCurrentRecord(resetAll, savedId = "") {
     renderMode();
   }
   $("lab-status").textContent = "";
+  $("hypothesis-status").textContent = "";
   $("observation-status").textContent = "";
   $("view-record").hidden = !savedId;
   for (const controls of photoControls.values()) controls.status.textContent = "";
