@@ -7,6 +7,7 @@
   <title>떡구전 - 외떡잎과 쌍떡잎 탐구</title>
   <link rel="stylesheet" href="./style.css">
   <script src="./script.js" defer></script>
+  <script src="./quiz.js" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="leaf-mono" viewBox="0 0 140 140"><path d="M68 128C56 108 34 93 32 66 30 35 56 14 109 7 96 24 95 59 83 86 77 101 72 117 68 128Z" fill="#6d9d72" stroke="#3d7751" stroke-width="1.8"/><path d="M68 128C71 100 65 71 109 7M65 116C52 82 45 57 109 7M59 108C42 77 34 49 109 7M77 106C83 82 88 54 109 7M51 95C36 70 30 40 109 7" stroke="#d9ebc8" stroke-width="1.5" fill="none"/><path d="M62 137 68 128" stroke="#456b49" stroke-width="3" stroke-linecap="round"/></symbol><symbol id="leaf-di" viewBox="0 0 140 140"><path d="M66 119C31 123 12 100 18 79 2 65 10 41 24 38 26 16 49 14 62 25 81 3 112 17 114 37 137 41 137 69 124 77 130 100 101 125 66 119Z" fill="#8ba66b" stroke="#52794f" stroke-width="1.8"/><path d="M64 134 70 112 88 28M70 110 35 84 20 79M77 88 114 65M80 68 48 42 24 38M84 50 105 33M53 97 48 75 27 54M48 94 26 103M73 104 99 98 124 77M96 99 104 113M99 77 123 86M57 50 61 30M45 43 34 24M74 91 62 70 53 63M105 70 118 47" stroke="#edf0cf" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M64 134 70 112" stroke="#52794f" stroke-width="3" stroke-linecap="round"/></symbol></defs></svg>
@@ -36,7 +37,7 @@
         <section id="lab" class="view" aria-labelledby="lab-title" hidden>
           <header class="page-heading"><h1 id="lab-title" tabindex="-1">식물 분류 탐구 학습</h1><p>식물의 특징을 기록하고 떡구전과 함께 분류 근거를 살펴봐요.</p><div class="actions"><button type="button" class="secondary" id="go-to-coach">AI 학습 모드 선택</button><button type="button" class="secondary" data-new-record>새 식물 탐구하기</button></div></header>
           <div class="lab-grid" id="lab-grid">
-            <div class="learning-workspace">
+            <div class="learning-workspace" role="region" aria-label="식물 관찰과 기록" tabindex="0">
               <details class="card traits-card"><summary>외떡잎과 쌍떡잎의 대표 특징 비교표</summary>
                 <table class="traits">
                   <caption class="sr-only">외떡잎과 쌍떡잎의 대표 특징</caption>
@@ -76,7 +77,7 @@
                 <p id="lab-status" class="feedback" role="status"></p>
               </section>
             </div>
-            <aside class="card coach" id="lesson-coach" aria-labelledby="coach-title">
+            <aside class="card coach" id="lesson-coach" aria-labelledby="coach-title" tabindex="0">
               <div class="coach-head">
                 <div class="coach-avatar">
                   <img src="./assets/tteokgujeon-ready.jpg" width="64" height="64" data-expression="ready" alt="웃는 떡구전">
@@ -84,9 +85,7 @@
                   <img src="./assets/tteokgujeon-praise.jpg" width="64" height="64" data-expression="praise" alt="엄지를 들고 칭찬하는 떡구전" hidden>
                 </div>
                 <div><h2 id="coach-title">떡구전</h2><p>AI 식물 분류 도우미</p><p id="mode-indicator" class="mode-indicator" aria-live="polite">학습 모드 선택 전</p></div>
-                <button type="button" class="secondary chat-toggle" id="chat-toggle" aria-controls="coach-body" aria-expanded="true"><span id="chat-toggle-icon" aria-hidden="true">▼</span><span id="chat-toggle-label">채팅창 내리기</span></button>
               </div>
-              <div id="coach-body">
               <fieldset class="mode-picker" id="mode-picker">
                 <legend>AI 학습 모드 선택</legend>
                 <div class="mode-cards">
@@ -103,13 +102,16 @@
               <p class="chat-note" id="chat-note">AI 연결 상태를 확인하고 있어요.</p>
               <p class="feedback" id="chat-status" role="status"></p>
               </div>
-              </div>
             </aside>
           </div>
         </section>
         <section id="additional" class="view" hidden aria-labelledby="additional-title">
-            <header class="page-heading"><h1 id="additional-title">추가학습</h1><p>겉모양만으로 분류하기 어려운 대나무와 질경이의 관찰 단서를 살펴봐요.</p></header>
-            <h2 class="extra-heading">예외 사례 토의</h2>
+            <header class="page-heading"><h1 id="additional-title">추가학습</h1><p>예외 사례를 살펴보거나 객관식 문제를 풀어 봐요.</p></header>
+            <div class="extra-tabs" role="tablist" aria-label="추가학습 활동">
+              <button class="secondary" type="button" role="tab" aria-selected="true" aria-controls="example-panel" id="example-tab">예외 사례 탐구</button>
+              <button class="secondary" type="button" role="tab" aria-selected="false" aria-controls="quiz-panel" id="quiz-tab" tabindex="-1">실전 객관식 문제</button>
+            </div>
+            <section id="example-panel" role="tabpanel" aria-labelledby="example-tab">
             <div class="challenge-grid">
               <article class="card challenge-card">
                 <p class="challenge-clue">단서 · 굵고 단단한 줄기</p>
@@ -126,6 +128,17 @@
                 <details><summary>비교 근거 보기</summary><p>질경이는 진정쌍떡잎식물이에요. 큰 잎맥 사이의 작은 맥과 작은 꽃 하나의 구조를 함께 살펴봐요.</p></details>
               </article>
             </div>
+            </section>
+            <section class="card quiz-panel" id="quiz-panel" role="tabpanel" aria-labelledby="quiz-tab" hidden>
+              <div class="quiz-header">
+                <h2>실전 객관식 문제</h2>
+                <p id="quiz-status" role="status"></p>
+              </div>
+              <h3 id="quiz-question" tabindex="-1"></h3>
+              <div id="quiz-options" class="quiz-options" role="group" aria-labelledby="quiz-question"></div>
+              <p class="callout" id="quiz-feedback" role="status" hidden></p>
+              <div class="actions"><button class="primary" type="button" id="quiz-next">새 문제 출제하기</button></div>
+            </section>
         </section>
 
         <section id="guide" class="view" hidden aria-labelledby="guide-title">

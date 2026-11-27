@@ -1,6 +1,7 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const { randomUUID } = require("node:crypto");
 
 const ROOT = __dirname;
 loadEnv(path.join(ROOT, ".env"));
@@ -22,6 +23,7 @@ const PUBLIC_FILES = new Map([
   ["/index.html", ["index.html", "text/html"]],
   ["/style.css", ["style.css", "text/css"]],
   ["/script.js", ["script.js", "text/javascript"]],
+  ["/quiz.js", ["quiz.js", "text/javascript"]],
   ["/assets/tteokgujeon-banner.png", ["assets/tteokgujeon-banner.png", "image/png"]],
   ["/assets/tteokgujeon-ready.jpg", ["assets/tteokgujeon-ready.jpg", "image/jpeg"]],
   ["/assets/tteokgujeon-thinking.jpg", ["assets/tteokgujeon-thinking.jpg", "image/jpeg"]],
@@ -56,7 +58,7 @@ const server = http.createServer(async (request, response) => {
   response.setHeader("Cache-Control", "no-store");
 
   if (PREVIEW && request.method === "GET" && request.url === "/__preview/version") {
-    const assets = ["index.html", "style.css", "script.js"];
+    const assets = ["index.html", "style.css", "script.js", "quiz.js"];
     try {
       const stats = await Promise.all(assets.map((file) => fs.promises.stat(path.join(ROOT, file))));
       return sendJson(response, 200, { version: [PREVIEW_STARTED, ...stats.map((file) => file.mtimeMs)].join(":") });
@@ -147,6 +149,7 @@ async function chat(request, response) {
 
   try {
     const body = await readJson(request);
+    if (body.activity === "quiz") return await generateQuiz(response, body.topicIndex);
     const attachments = normalizeAttachments(body.attachments);
     let message = typeof body.message === "string" ? body.message.trim() : "";
     const sessionId =
@@ -172,16 +175,7 @@ async function chat(request, response) {
       payload.attachments = attachments;
     }
 
-    const endpoint =
-      `${BASE_URL}/api/v1/workspace/${encodeURIComponent(WORKSPACE_SLUG)}/chat`;
-    const upstream = await fetchWithTimeout(endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    }, CHAT_TIMEOUT_MS);
+    const upstream = await requestWorkspaceChat(payload, CHAT_TIMEOUT_MS);
 
     const raw = await upstream.text();
     let data = {};
@@ -245,6 +239,55 @@ async function chat(request, response) {
     sendJson(response, 502, {
       error: "AnythingLLM 서버에 연결할 수 없습니다.",
     });
+  }
+}
+
+function requestWorkspaceChat(payload, timeoutMs) {
+  const endpoint = `${BASE_URL}/api/v1/workspace/${encodeURIComponent(WORKSPACE_SLUG)}/chat`;
+  return fetchWithTimeout(endpoint, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }, timeoutMs);
+}
+
+async function generateQuiz(response, topicIndex) {
+  const topics = ["떡잎 수", "잎맥", "꽃잎 수", "뿌리 형태", "줄기 관다발과 형성층", "대나무 예외", "질경이 예외", "단서가 부족할 때의 판단 보류"];
+  const topic = Number.isInteger(topicIndex) && topics[topicIndex] || topics[0];
+  const upstream = await requestWorkspaceChat({
+    mode: "chat",
+    sessionId: "quiz-" + randomUUID(),
+    message: [
+      "추가학습 객관식 문제를 만드는 교사용 출제 요청이다. 학생과 하는 관찰 문답이나 가설 검토가 아니다. 워크스페이스의 탐구 흐름에서 모든 관찰과 가설 검토가 끝난 뒤 사용하는 실전 적용 퀴즈 한 문제를 작성한다.",
+      `중학교 생명과학 · 이번 주제는 ${topic}이다. 새로운 관찰 상황을 만들어 서로 다른 선지 4개와 오직 하나의 명확한 정답을 준다. 잎맥·꽃잎 수 등 대표 특징에는 예외가 있을 수 있다. 친근한 한국어 해설을 1~2문장으로 쓴다.`,
+      '출제 화면이 읽을 JSON 객체 하나만 출력한다. 앞뒤 인사, 마크다운, 일반 대화는 생략한다. 형식은 {"question":"문제 문장","choices":["첫째 선지","둘째 선지","셋째 선지","넷째 선지"],"answerIndex":0,"explanation":"해설"}이다. answerIndex는 0부터 센 실제 정답 위치이며, 문제 문장에 정답을 공개하지 않는다.',
+    ].join("\n"),
+  }, 12000);
+  if (!upstream.ok) return sendJson(response, 502, { error: "AI 문제를 받지 못했어요." });
+  const data = await upstream.json();
+  const quiz = parseQuiz(data.textResponse);
+  if (!quiz) return sendJson(response, 502, { error: "AI 문제 형식을 확인하지 못했어요." });
+  return sendJson(response, 200, { quiz });
+}
+
+function parseQuiz(text) {
+  if (typeof text !== "string") return null;
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start < 0 || end <= start) return null;
+  try {
+    const { question, choices, answerIndex, explanation } = JSON.parse(text.slice(start, end + 1));
+    const validText = (value, limit) => typeof value === "string" && value.trim() && value.trim().length <= limit;
+    if (!validText(question, 300) || !validText(explanation, 500) ||
+        !Array.isArray(choices) || ![4, 5].includes(choices.length) ||
+        !choices.every((choice) => validText(choice, 180)) ||
+        !Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex >= choices.length) return null;
+    const trimmed = choices.map((choice) => choice.trim());
+    return new Set(trimmed).size === trimmed.length
+      ? { question: question.trim(), choices: trimmed, answerIndex, explanation: explanation.trim() }
+      : null;
+  } catch {
+    return null;
   }
 }
 
@@ -528,10 +571,11 @@ const LESSON_STAGES = {
   transfer: "전이 평가. 새 표본 C에는 떡잎 2개와 고리 모양 관다발이 관찰되며 꽃은 보이지 않는다. 학생이 먼저 적용한 기준을 짚고, 잘한 점과 보완할 증거를 구체적으로 설명한다.",
 };
 const LESSON_FIELDS = {
-  specimen: "식물·표본 이름", cotyledons: "떡잎 수", veins: "잎맥과 잎 모양",
-  flowers: "꽃 구조", petalCount: "꽃잎 수", roots: "뿌리", bundles: "줄기의 관다발",
-  rootsStatus: "뿌리 관찰 상태", veinsStatus: "잎 관찰 상태", flowersStatus: "꽃 관찰 상태",
-  bundlesStatus: "줄기 관찰 상태", cotyledonsStatus: "떡잎 관찰 상태",
+  specimen: "식물·표본 이름", cotyledons: "떡잎 수", cotyledonsStatus: "떡잎 관찰 상태",
+  veins: "잎맥과 잎 모양", veinsStatus: "잎 관찰 상태",
+  petalCount: "꽃잎 수", flowers: "꽃 구조", flowersStatus: "꽃 관찰 상태",
+  roots: "뿌리", rootsStatus: "뿌리 관찰 상태",
+  bundles: "줄기의 관다발", bundlesStatus: "줄기 관찰 상태",
   hypothesis: "처음 추측", reason: "처음 근거", revision: "검토 후 생각",
   exceptionChoice: "표본 B 추측", exceptionReason: "표본 B 근거",
   conclusion: "최종 결론", conclusionReason: "최종 근거", transferChoice: "표본 C 추측",

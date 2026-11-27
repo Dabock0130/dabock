@@ -2,11 +2,11 @@
 
 const $ = (id) => document.getElementById(id);
 const evidence = [
-  ["roots", "뿌리", "뿌리의 특징", "예: 비슷한 굵기의 뿌리가 여러 개"],
+  ["cotyledons", "떡잎", "떡잎의 수와 특징", "예: 싹에서 2개가 보임"],
   ["veins", "잎", "잎맥과 잎의 특징", "예: 잎이 길고 잎맥이 나란함"],
   ["flowers", "꽃", "꽃의 특징", "예: 꽃잎처럼 보이는 조각 6개"],
+  ["roots", "뿌리", "뿌리의 특징", "예: 비슷한 굵기의 뿌리가 여러 개"],
   ["bundles", "줄기", "줄기 관다발의 특징", "예: 단면 가장자리에 고리 모양"],
-  ["cotyledons", "떡잎", "떡잎의 수와 특징", "예: 싹에서 2개가 보임"],
 ];
 const organNames = new Map(evidence.map(([key, name]) => [key, name]));
 const classifications = ["", "외떡잎식물로 추정", "쌍떡잎식물로 추정", "판단 보류"];
@@ -146,7 +146,12 @@ function conclusionLabel(value) {
   return (value || "").replace(/로 추정$/, "");
 }
 function plantValues() {
-  return Object.fromEntries(Object.entries(draft).filter(([key]) => !additionalKeys.has(key)));
+  return orderPlantValues(Object.fromEntries(Object.entries(draft).filter(([key]) => !additionalKeys.has(key))));
+}
+function orderPlantValues(values) {
+  const ordered = ["specimen", ...evidence.flatMap(([key]) => key === "flowers" ? ["petalCount", key, key + "Status"] : [key, key + "Status"])];
+  const keys = new Set([...ordered, ...Object.keys(values)]);
+  return Object.fromEntries([...keys].filter((key) => Object.hasOwn(values, key)).map((key) => [key, values[key]]));
 }
 function hydrateFields() {
   for (const field of fields) field.value = fieldValue(field.dataset.field);
@@ -321,24 +326,6 @@ $("mode-picker").addEventListener("change", (event) => {
   renderMode();
 });
 $("go-to-coach").addEventListener("click", focusMode);
-const chatToggle = $("chat-toggle");
-chatToggle.addEventListener("click", () => {
-  const expanded = $("coach-body").hidden;
-  setChatExpanded(expanded);
-  if (expanded) chatToggle.scrollIntoView({ block: "nearest" });
-});
-
-function setChatExpanded(expanded) {
-  $("coach-body").hidden = !expanded;
-  $("lab").classList.toggle("is-chat-collapsed", !expanded);
-  chatToggle.setAttribute("aria-expanded", String(expanded));
-  $("chat-toggle-icon").textContent = expanded ? "▼" : "▲";
-  $("chat-toggle-label").textContent = expanded ? "채팅창 내리기" : "채팅창 열기";
-  if (expanded) {
-    const log = $("chat-log");
-    log.scrollTop = log.scrollHeight;
-  }
-}
 
 $("review-hypothesis").addEventListener("click", () => {
   if (busy || reading || saving) return;
@@ -355,8 +342,7 @@ $("review-hypothesis").addEventListener("click", () => {
     return;
   }
   status.textContent = "";
-  setChatExpanded(true);
-  $("chat-input").focus();
+  $("chat-input").focus({ preventScroll: true });
   send("작성한 분류 가설과 근거를 검토해 줘.", true);
 });
 
@@ -369,7 +355,6 @@ $("reset-chat").addEventListener("click", () => {
   $("chat-input").focus();
 });
 function focusMode() {
-  setChatExpanded(true);
   const choice = $("mode-picker").querySelector("input:checked") || $("mode-picker").querySelector("input");
   choice.focus();
 }
@@ -445,7 +430,7 @@ async function send(message, reviewRequested = false) {
   const { turns } = chat;
   const stillVisible = () => currentView === "lab" && activeChat() === chat;
   const attachments = [
-    ...Object.entries(photos).map(([key, photo]) => ({ ...photo, name: organNames.get(key) + "-" + photo.name })),
+    ...evidence.filter(([key]) => photos[key]).map(([key, organ]) => ({ ...photos[key], name: organ + "-" + photos[key].name })),
     ...documents,
   ];
   const existingInput = $("chat-input").value;
@@ -553,8 +538,10 @@ function renderJournal() {
       entry.append(gallery);
     }
     const recordFields = [
-      ...evidence.flatMap(([key, organ, label]) => [[key, label], [key + "Status", organ + " 관찰 상태"]]),
-      ["petalCount", "꽃잎 수"], ["hypothesis", "첫 추측"], ["reason", "첫 근거"], ["revision", "검토 후 생각"],
+      ...evidence.flatMap(([key, organ, label]) => [
+        ...(key === "flowers" ? [["petalCount", "꽃잎 수"]] : []), [key, label], [key + "Status", organ + " 관찰 상태"],
+      ]),
+      ["hypothesis", "첫 추측"], ["reason", "첫 근거"], ["revision", "검토 후 생각"],
       ["exceptionChoice", "예외 사례 추론"], ["exceptionReason", "예외 사례 근거"],
       ["conclusion", "최종 결론"], ["conclusionReason", "최종 근거"], ["transferChoice", "새 식물 추측"],
       ["transferReason", "새 식물 근거"], ["nextQuestion", "더 알아보고 싶은 질문"],
@@ -602,9 +589,10 @@ async function saveRecord() {
   refreshControls();
   try {
     const previous = records.find((record) => record.id === recordId);
-    const values = { ...previous?.values, ...plantValues() };
+    const values = orderPlantValues({ ...previous?.values, ...plantValues() });
     const legacyPhotos = (previous?.photos || []).filter((photo) => !organNames.has(photo.organ));
-    const savedRecord = { id: recordId, values, photos: [...legacyPhotos, ...Object.values(photos)], savedAt: Date.now() };
+    const organPhotos = evidence.map(([key]) => photos[key]).filter(Boolean);
+    const savedRecord = { id: recordId, values, photos: [...organPhotos, ...legacyPhotos], savedAt: Date.now() };
     await journalRequest("readwrite", (store) => store.put(savedRecord));
     records = [savedRecord, ...records.filter((record) => record.id !== recordId)];
     photosChanged = false;
