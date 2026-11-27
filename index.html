@@ -29,17 +29,7 @@
               <p><strong>탐구 미션</strong> 학교 주변에서 식물 한 가지를 찾아보세요. 잎과 꽃에서 단서를 모으고, 떡구전과 함께 내 분류 근거를 점검해요.</p>
               <div class="actions"><a class="primary" href="#observe">관찰 시작하기</a><a class="secondary" href="#lab">AI 탐구실 가기</a></div>
             </div>
-            <div class="hero-art" aria-hidden="true">
-              <svg viewBox="0 0 370 280">
-                <circle cx="185" cy="138" r="113" fill="#dce8d3"/>
-                <circle cx="185" cy="138" r="123" fill="none" stroke="#9db994" stroke-dasharray="2 7"/>
-                <circle cx="185" cy="138" r="97" fill="none" stroke="#aac2a2"/>
-                <path d="M22 138h326M185 14v248" stroke="#a6bea0" stroke-dasharray="3 6"/>
-                <use href="#leaf-mono" x="43" y="38" width="153" height="183" transform="rotate(-18 115 135)"/>
-                <use href="#leaf-di" x="155" y="76" width="167" height="182" transform="rotate(16 230 160)"/>
-                <circle cx="63" cy="66" r="4" fill="#b08a53"/><circle cx="303" cy="222" r="3" fill="#b08a53"/>
-              </svg>
-            </div>
+            <img class="hero-art" src="./assets/tteokgujeon-ready.jpg" width="760" height="760" alt="잎 그림을 가리키며 웃는 떡구전">
           </header>
 
           <section id="observe" class="lesson-section" aria-labelledby="observe-title">
@@ -114,7 +104,14 @@
               <p id="lab-status" class="feedback" role="status"></p>
             </article>
             <aside class="card coach" id="lesson-coach" aria-labelledby="coach-title">
-              <div class="coach-head"><span class="coach-mark" aria-hidden="true">✦</span><div><h2 id="coach-title">떡구전</h2><p>AI 식물 분류 도우미</p></div></div>
+              <div class="coach-head">
+                <div class="coach-avatar">
+                  <img src="./assets/tteokgujeon-ready.jpg" width="64" height="64" data-expression="ready" alt="웃는 떡구전">
+                  <img src="./assets/tteokgujeon-thinking.jpg" width="64" height="64" data-expression="thinking" alt="답변을 생각하는 떡구전" hidden>
+                  <img src="./assets/tteokgujeon-praise.jpg" width="64" height="64" data-expression="praise" alt="엄지를 들고 칭찬하는 떡구전" hidden>
+                </div>
+                <div><h2 id="coach-title">떡구전</h2><p>AI 식물 분류 도우미</p></div>
+              </div>
               <div class="chat-log" id="chat-log" role="log" aria-label="떡구전과 나눈 대화"></div>
               <div class="chat-actions" aria-label="바로 질문하기"><button type="button" class="text-button coach-action" data-coach="잎맥이 나란히 나 있어요">잎맥이 나란히 나 있어요</button><button type="button" class="text-button coach-action" data-coach="그물처럼 얽혀 있어요">그물처럼 얽혀 있어요</button><button type="button" class="text-button coach-action" data-coach="꽃잎 수를 세어봤어요">꽃잎 수를 세어봤어요</button></div>
               <form id="chat-form"><label class="sr-only" for="chat-input">떡구전에게 질문</label><textarea id="chat-input" rows="2" maxlength="1800" placeholder="관찰한 점이나 궁금한 점을 적어 보세요."></textarea><button class="primary" type="submit">보내기</button></form>

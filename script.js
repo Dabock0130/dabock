@@ -80,6 +80,7 @@ const savedIndex = stages.findIndex(([id]) => id === (savedStage === "exception"
 let stage = stages[savedIndex] ? savedIndex : 0;
 let sessionId = crypto.randomUUID();
 let busy = false;
+let pendingTurns = null;
 let reading = false;
 let saving = false;
 let connectionState = "pending";
@@ -317,11 +318,19 @@ async function addAttachments(event) {
 $("attachments").addEventListener("change", addAttachments);
 $("documents").addEventListener("change", addAttachments);
 
+function isPraise(text) {
+  return /잘했(?:어|다|네)|잘\s*(?:봤|찾았|찾아냈|짚었|골랐|관찰했|설명했|정리했|적었|생각했|비교했|구분했|분류했)|훌륭해|멋져|(?:정확히|정확하게)\s*(?:봤|찾았|찾아냈|짚었|관찰했|구분했|분류했)|핵심을\s*(?:딱\s*)?짚었|(?:관찰|추론|설명|근거|판단)(?:이|가)\s*(?:아주\s*|정말\s*)?(?:정확|좋|훌륭|탄탄)|(?:^|[.!?\n]\s*)(?:좋아|좋아요|맞아|맞아요|정답이야|정답이에요)[!！]/u.test(text);
+}
+
 function renderChat() {
   const log = $("chat-log");
+  const turns = inChallenge ? exceptionConversation : conversations[stage];
+  const expression = turns === pendingTurns ? "thinking" : turns.at(-1)?.praise ? "praise" : "ready";
+  for (const avatar of $("lesson-coach").querySelectorAll("[data-expression]")) {
+    avatar.hidden = avatar.dataset.expression !== expression;
+  }
   log.replaceChildren();
-  const entries = inChallenge ? [{ text: exceptionHint }, ...exceptionConversation]
-    : [{ text: stages[stage][2] }, ...conversations[stage]];
+  const entries = [{ text: inChallenge ? exceptionHint : stages[stage][2] }, ...turns];
   for (const { text, mine, files } of entries) {
     const bubble = document.createElement("div");
     bubble.className = "message" + (mine ? " me" : "");
@@ -386,9 +395,10 @@ async function send(message) {
     renderChat();
     return;
   }
+  busy = true;
+  pendingTurns = turns;
   renderChat();
   $("chat-status").textContent = "떡구전이 답변을 준비하고 있어요…";
-  busy = true;
   refreshControls();
   try {
     const response = await fetch("./api/chat", {
@@ -407,7 +417,7 @@ async function send(message) {
       throw new Error(response.status === 503 ? "AI 연결을 확인해 주세요. 관찰과 기록은 계속할 수 있어요."
         : body.error || "답변을 받지 못했어요. 다시 보내 주세요.");
     }
-    turns.push({ text: body.textResponse, files: body.files });
+    turns.push({ text: body.textResponse, files: body.files, praise: isPraise(body.textResponse) });
     if (stillVisible()) $("chat-status").textContent = "";
   } catch (error) {
     turns.pop();
@@ -418,6 +428,7 @@ async function send(message) {
     }
   } finally {
     busy = false;
+    pendingTurns = null;
     refreshControls();
     renderChat();
   }

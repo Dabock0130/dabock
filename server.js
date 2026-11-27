@@ -22,6 +22,9 @@ const PUBLIC_FILES = new Map([
   ["/index.html", ["index.html", "text/html"]],
   ["/style.css", ["style.css", "text/css"]],
   ["/script.js", ["script.js", "text/javascript"]],
+  ["/assets/tteokgujeon-ready.jpg", ["assets/tteokgujeon-ready.jpg", "image/jpeg"]],
+  ["/assets/tteokgujeon-thinking.jpg", ["assets/tteokgujeon-thinking.jpg", "image/jpeg"]],
+  ["/assets/tteokgujeon-praise.jpg", ["assets/tteokgujeon-praise.jpg", "image/jpeg"]],
 ]);
 
 const IMAGE_MIMES = new Set([
@@ -818,7 +821,7 @@ function serveAsset(response, filename, mime) {
     if (error) {
       return sendJson(response, 500, { error: "페이지 자료를 읽을 수 없습니다." });
     }
-    response.writeHead(200, { "Content-Type": `${mime}; charset=utf-8` });
+    response.writeHead(200, { "Content-Type": mime.startsWith("text/") ? `${mime}; charset=utf-8` : mime });
     if (PREVIEW && mime === "text/html") {
       const reloadScript = `<script>
         let previewVersion;
