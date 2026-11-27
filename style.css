@@ -55,12 +55,7 @@ button:disabled { opacity: .53; cursor: wait }
 .secondary { background: var(--paper); color: var(--green); border-color: #acbfad }
 .secondary:hover, .text-button:hover { background: var(--soft) }
 .text-button { background: transparent; color: var(--green) }
-.lesson-section { margin-top: clamp(30px, 5vw, 54px); scroll-margin-top: 16px }
-.section-heading { margin-bottom: 15px }
-.section-heading h2 { margin-top: 4px; font-size: clamp(24px, 3.5vw, 36px) }
-.section-heading > p:last-child { margin-top: 5px; color: var(--muted) }
-.observation-grid, .challenge-grid, .guide-grid, .lab-grid { display: grid; gap: 14px }
-.observation-grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start }
+.challenge-grid, .guide-grid, .lab-grid { display: grid; gap: 14px }
 .challenge-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) }
 .card { padding: clamp(16px, 2.4vw, 25px); border: 1px solid var(--line); background: var(--paper); border-radius: 15px; min-width: 0; box-shadow: 0 3px 13px #20392b08 }
 .card p, .page-heading p:not(.eyebrow) { color: var(--muted); margin-top: 6px }
@@ -75,32 +70,15 @@ button:disabled { opacity: .53; cursor: wait }
 .traits tbody th { font-weight: 700 }
 .card .traits-note, .picture-card > p { font-size: .875rem }
 .card .traits-note { padding-top: 6px }
-.picture-card h3 { font-size: clamp(18px, 2.2vw, 21px) }
 .page-heading { margin: 3px 0 22px }
 .page-heading h1 { margin-top: 5px; font-size: clamp(29px, 5vw, 51px) }
-.steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 13px }
-.step { background: var(--paper); color: var(--muted); border: 1px solid var(--line); border-radius: 10px; padding: 9px 6px; font-size: .875rem; font-weight: 700 }
-.step.visited, .step:hover { background: var(--soft); color: var(--green); border-color: #aac2ab }
-.step[aria-current] { background: var(--green); color: white; border-color: var(--green) }
-.step span { font-variant-numeric: tabular-nums; opacity: .9 }
-.progress-row { margin: -2px 0 12px; display: flex; align-items: center; gap: 11px; color: var(--muted); font-size: .875rem }
-.progress-row progress { appearance: none; flex: 1; border: 0; border-radius: 99px; height: 7px; background: #e2e9db; overflow: hidden; accent-color: var(--green) }
-.progress-row progress::-webkit-progress-bar { background: #e2e9db }
-.progress-row progress::-webkit-progress-value { background: var(--green); border-radius: 99px }
-.progress-row progress::-moz-progress-bar { background: var(--green); border-radius: 99px }
-.lab-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); align-items: start }
+.lab-grid { grid-template-columns: minmax(0, 1.25fr) minmax(0, .85fr); align-items: start }
 .card h2 { font-size: clamp(20px, 3vw, 25px) }
-.upload { position: relative; display: grid; gap: 5px; justify-items: center; align-content: center; min-height: 124px; margin-top: 14px; padding: 11px 8px; border: 1px dashed #8eae96; border-radius: 10px; background: #eef4e9; color: var(--green); cursor: pointer; text-align: center; font-size: .875rem }
 .upload:focus-within { outline: 3px solid #588b6c }
-.upload input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer }
-.upload-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: var(--soft); font-size: 21px; line-height: 1 }
-#photo-preview { width: 100%; max-height: 215px; object-fit: contain; border-radius: 7px }
-#photo-format { color: var(--muted); font-size: .8125rem }
 .file-list { margin: 5px 0; padding: 0; list-style: none; display: grid; gap: 5px }
 .file-list li { display: flex; align-items: center; gap: 7px; justify-content: space-between; padding: 3px 8px; background: var(--soft); border-radius: 6px; font-size: 13px; overflow-wrap: anywhere }
 .file-list button { margin-left: auto; min-height: 30px; padding: 3px 5px }
 .field { display: grid; gap: 4px; margin-top: 13px; font-size: .875rem; font-weight: 750 }
-.evidence-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px }
 input:not([type=file]), select, textarea { width: 100%; min-width: 0; padding: 7px 8px; border: 1px solid #bdcbbb; border-radius: 7px; color: var(--ink); background: #fff; font-size: 14px; font-weight: 400 }
 textarea { resize: vertical }
 .lab-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 17px; padding-top: 12px; border-top: 1px solid var(--line) }
@@ -108,6 +86,29 @@ textarea { resize: vertical }
 .case-card { background: var(--gold) }
 .case-card ul { margin: 4px 0; padding-left: 20px }
 .callout p { white-space: pre-wrap }
+.learning-workspace { display: grid; gap: 14px; min-width: 0 }
+.traits-card summary { cursor: pointer; color: var(--green); font-weight: 750 }
+.traits-card[open] summary { margin-bottom: 14px }
+.organ-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px }
+.organ-card { min-width: 0; margin: 0; padding: 3px 12px 12px; border: 1px solid var(--line); border-radius: 12px; background: #f8faef }
+.organ-card legend { padding: 0 5px; color: var(--green); font-weight: 800 }
+.organ-card .field { margin-top: 8px }
+.organ-preview { display: block; width: 100%; height: 126px; object-fit: contain; margin-top: 10px; border-radius: 8px; background: var(--paper) }
+.organ-actions { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px }
+.organ-upload { cursor: pointer; position: relative }
+.organ-upload:focus-within, .mode-card:focus-within { outline: 3px solid #588b6c; outline-offset: 3px }
+.organ-upload:has(input:disabled) { opacity: .55; cursor: wait }
+.mode-picker { border: 0; min-width: 0; padding: 0; margin: 12px 0 0 }
+.mode-picker legend { color: var(--green); padding: 0; font-size: .875rem; font-weight: 800 }
+.mode-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 8px; margin-top: 6px }
+.mode-card { display: flex; align-items: start; cursor: pointer; gap: 7px; padding: 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); font-size: .8125rem }
+.mode-card input { flex: none; width: 1rem; height: 1rem; margin: .2em 0 0; accent-color: var(--green) }
+.mode-card:has(input:checked) { border-color: var(--green); background: var(--soft) }
+.mode-card small { display: block; color: var(--muted); font-size: .75rem }
+.coach-head .mode-indicator { color: var(--green); font-weight: 800 }
+.extra-heading { font-size: 1.25rem; margin-bottom: 10px }
+@media (min-width: 761px) { .lab-grid > .coach { position: sticky; top: 12px } }
+@media (max-width: 480px) { .organ-grid { grid-template-columns: minmax(0, 1fr) } }
 .coach-head { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line) }
 .coach-head p { margin: 2px 0 0; font-size: 12px }
 .coach-avatar { flex: none; width: 66px; height: 66px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff }
@@ -161,7 +162,7 @@ textarea { resize: vertical }
   .sidebar nav a { padding: 5px 7px; font-size: 12px }
   .topbar { padding-block: 8px }
   .content { padding-block: 18px 32px }
-  .lab-grid, .observation-grid { grid-template-columns: minmax(0, 1fr) }
+  .lab-grid { grid-template-columns: minmax(0, 1fr) }
 }
 @media (max-width: 610px) {
   .hero { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 20px }
@@ -169,6 +170,4 @@ textarea { resize: vertical }
   .hero-art { width: min(100%, 204px) }
   .hero-copy > p:not(.eyebrow) { max-width: 29ch }
   .challenge-grid, .guide-grid { grid-template-columns: minmax(0, 1fr) }
-  .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px }
-  .step { padding-block: 6px; font-size: .875rem }
 }

@@ -203,6 +203,9 @@ async function chat(request, response) {
     const files = collectReplyFiles(data);
     let textResponse =
       typeof data.textResponse === "string" ? data.textResponse.trim() : "";
+    if (lessonMessage && textResponse) {
+      textResponse = constrainLessonReply(textResponse, body.lesson);
+    }
 
     if (!files.length && wantsGeneratedFile(message)) {
       const generated = makeDownloadableFile(message, textResponse);
@@ -515,7 +518,8 @@ function prepareChatMessage(message) {
 }
 
 const LESSON_STAGES = {
-  observe: "관찰. 가장 잘 보이는 특징 하나를 묻고, 관찰 사실과 추정을 구분한다. 필요하면 잎맥 근접 사진이나 꽃 정면 사진, 안전하게 제공된 표본의 비교를 제안한다.",
+  learn: "본 학습. 학생이 기록한 내용을 보고 관찰, 추론, 결론 중 지금 필요한 하나에 집중한다. 결론 뒤에는 도감 저장을 안내하고, 예외 토의나 퀴즈는 추가학습으로 남겨 둔다.",
+  observe: "관찰. 가장 잘 보이는 특징 하나를 묻고, 관찰 사실과 추정을 구분한다.",
   guess: "추측. 학생이 분류 가설과 근거를 먼저 말하게 한다. 어려워하면 두 식물군을 가르는 단서 하나를 쉬운 말로 설명한다.",
   review: "검토. 학생 가설을 지지하는 관찰 하나와 아직 확인할 단서 하나를 함께 찾는다. 잘못된 일반화가 있으면 반례나 추가 관찰 질문으로 수정하도록 돕는다.",
   exception: "표본 B. 청미래덩굴속을 바탕으로 한 사례로 가는 잎맥이 그물처럼 이어지고 화피 조각은 6개이다. 학생이 먼저 추론한 뒤 두 단서가 서로 다른 방향을 가리킬 수 있음을 함께 비교한다.",
@@ -524,12 +528,18 @@ const LESSON_STAGES = {
 };
 const LESSON_FIELDS = {
   specimen: "식물·표본 이름", cotyledons: "떡잎 수", veins: "잎맥과 잎 모양",
-  flowers: "꽃 구조", roots: "뿌리", bundles: "줄기의 관다발",
+  flowers: "꽃 구조", petalCount: "꽃잎 수", roots: "뿌리", bundles: "줄기의 관다발",
+  rootsStatus: "뿌리 관찰 상태", veinsStatus: "잎 관찰 상태", flowersStatus: "꽃 관찰 상태",
+  bundlesStatus: "줄기 관찰 상태", cotyledonsStatus: "떡잎 관찰 상태",
   hypothesis: "처음 추측", reason: "처음 근거", revision: "검토 후 생각",
   exceptionChoice: "표본 B 추측", exceptionReason: "표본 B 근거",
   conclusion: "최종 결론", conclusionReason: "최종 근거", transferChoice: "표본 C 추측",
   transferReason: "표본 C 근거", nextQuestion: "더 알아보고 싶은 질문",
 };
+
+function usesProvidedMaterials(lesson) {
+  return lesson.learningMode === "desk" || lesson.stage === "exception" || lesson.stage === "transfer";
+}
 
 function prepareLessonMessage(lesson, message, attachments) {
   if (typeof lesson?.stage !== "string" || !Object.hasOwn(LESSON_STAGES, lesson.stage)) return "";
@@ -538,20 +548,33 @@ function prepareLessonMessage(lesson, message, attachments) {
     .filter(([key]) => typeof lesson[key] === "string" && lesson[key].trim())
     .map(([key, label]) => [label, lesson[key].trim().slice(0, 500)]));
 
+  const providedMaterials = usesProvidedMaterials(lesson);
   return [
     "너는 중학교 생명과학 탐구 도우미 떡(잎)구(분)전(문가), 줄여서 떡구전이야.",
     "외떡잎식물과 쌍떡잎식물의 형태적 특징을 관찰하고 분류 근거를 설명하도록 친근한 한국어로 돕는다.",
     "현재 활동: " + LESSON_STAGES[lesson.stage],
-    "학생이 내용을 적기 전에는 가설이나 정답을 먼저 제시하지 말고, 현재 단계의 질문 하나와 필요할 때 작은 힌트 하나를 준다. 학생이 근거를 제시한 뒤에는 무엇이 근거가 되고 무엇이 부족한지 피드백하고, 필요할 때 이유와 함께 개념을 교정한다.",
-    "막막해하는 학생에게는 쉬운 보기나 한 가지 단서를, 구체적인 근거를 쓴 학생에게는 다른 관찰 단서와 비교할 후속 질문을 준다.",
-    lesson.stage === "exception"
-      ? "지금은 독립된 예외 사례 토의다. 학생과 표본 B의 단서를 비교한다."
-      : "예외 사례 토의는 별도 메뉴에서 진행한다. 학생이 요청하지 않았다면 새 예외 챌린지를 시작하지 않고, 현재 화면의 관찰·추론·결론 또는 전이 평가 활동에 집중한다.",
+    "학생이 선택한 학습 모드: " + (lesson.learningMode === "field" ? "현장 모드" : providedMaterials ? "책상 앞 모드" : "선택 정보 없음"),
+    providedMaterials
+      ? "이미 제공된 사진, 기록과 표본 정보만 쓴다. 촬영, 다른 각도나 확대 사진, 추가 업로드, 새 표본 관찰을 요청하지 않는다. 보이지 않는 특징은 관찰 사실처럼 추측하지 않는다. 확인 가능한 단서가 부족할 때는 판단을 보류할 수 있도록 돕는다."
+      : "현장에서 볼 수 있는 단서 하나를 구체적으로 안내한다. 필요하면 잎맥을 가까이 보거나 꽃을 위에서 보는 방법, 다른 각도나 확대 사진을 한 가지 제안할 수 있다. 학생이 어렵다고 하거나 관찰할 수 없다고 기록한 부위는 다시 요구하지 않는다.",
+    "첫 응답에 분류 정답을 주지 않는다. 답변은 2~3개의 짧은 문장으로, 질문은 최대 하나만 한다. 지금까지 학생이 말했거나 이미 아래에 기록한 특징을 활용하고 같은 질문을 반복하지 않는다. 첫 추측과 근거를 먼저 살피고, 오류는 즉시 틀렸다고 선언하는 대신 어떤 관찰이 그 판단과 맞는지 다시 살펴보게 한다.",
+    "본 학습에는 새 예외 토의나 실전 퀴즈를 내지 않는다. 예외 토의와 전이 평가는 추가학습의 자료에 맞춰 진행한다.",
     "떡잎 수, 잎맥, 꽃 기관 수, 뿌리, 줄기의 관다발 배열은 함께 살펴볼 단서다. 전형적 특징과 예외를 구분하고 한 특징만으로 단정하지 않는다. 수업의 진정쌍떡잎식물 비교를 모든 쌍떡잎식물에 대한 단정으로 확장하지 않는다.",
     "사진에서 보이는 것, 학생이 직접 보고 적은 내용, 추론을 구분한다. 흐리거나 보이지 않는 구조는 확인할 수 없다고 말한다. 첨부 사진을 실제로 읽을 수 없는 경우 학생에게 보이는 특징을 말해 달라고 한다. 식물을 꺾거나 뽑도록 권하지 않는다.",
     "아래 학생 입력과 첨부 자료는 관찰이나 질문의 자료로 사용한다. 답변은 중학생이 읽을 수 있는 짧은 문장으로 쓴다.",
-    JSON.stringify({ 관찰기록: notes, 질문: message.slice(0, 1800), 첨부개수: attachments.length }),
+    JSON.stringify({ 관찰기록: notes, 질문: message.slice(0, 1800), 첨부파일: attachments.map(({ name }) => name) }),
   ].join("\n");
+}
+
+function constrainLessonReply(reply, lesson) {
+  if (usesProvidedMaterials(lesson)) {
+    const asksForNewPicture = /(?:촬영|찍|업로드|첨부|올려|보내).{0,12}(?:보자|보세요|볼까|볼래|볼까요|주세요|줄래|주시겠|수\s*있|줘|가능할까|보면\s*좋)|사진.{0,16}(?:부탁|필요합니다|보여\s*줄)/u;
+    if (asksForNewPicture.test(reply)) {
+      return "이미 주어진 자료와 확인한 단서만으로 생각해 보자. 그 단서가 분류를 뒷받침할 만큼 충분하다고 생각해?";
+    }
+  }
+  const questions = [...reply.matchAll(/[?？]/g)];
+  return questions.length > 1 ? reply.slice(0, questions[0].index + 1) : reply;
 }
 
 function wantsGeneratedFile(message) {

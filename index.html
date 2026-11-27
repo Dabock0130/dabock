@@ -14,7 +14,7 @@
     <aside class="sidebar">
       <a class="brand" href="#home"><span class="brand-icon" aria-hidden="true">✿</span><span>떡구전<small>중학교 생명과학 탐구</small></span></a>
       <nav aria-label="탐구 메뉴">
-        <a href="#home">탐구 홈</a><a href="#observe">관찰 및 비교</a><a href="#lab">AI 탐구실</a><a href="#challenge">예외 토의</a><a href="#guide">개념 학습</a><a href="#journal">나의 탐구 도감</a><a href="#sources">참고 자료</a>
+        <a href="#home">탐구 홈</a><a href="#lab">학습</a><a href="#additional">추가학습</a><a href="#guide">개념 학습</a><a href="#journal">나의 탐구 도감</a><a href="#sources">참고 자료</a>
       </nav>
       <div class="field-note"><strong>현장 관찰 약속</strong><p>식물을 꺾거나 뽑지 않아요. 보이지 않는 부분은 ‘확인 못함’으로 기록해요.</p></div>
     </aside>
@@ -26,18 +26,21 @@
             <div class="hero-copy">
               <p class="eyebrow">떡(잎)구(분)전(문가)</p>
               <h1 id="home-title">떡구전 - <br><em>외떡잎과 쌍떡잎 탐구</em></h1>
-              <p><strong>탐구 미션</strong> 학교 주변에서 식물 한 가지를 찾아보세요. 잎과 꽃에서 단서를 모으고, 떡구전과 함께 내 분류 근거를 점검해요.</p>
-              <div class="actions"><a class="primary" href="#observe">관찰 시작하기</a><a class="secondary" href="#lab">AI 탐구실 가기</a></div>
+              <p><strong>탐구 미션</strong> 실제 식물이나 제공된 자료에서 단서를 모으고, 떡구전과 함께 내 분류 근거를 점검해요.</p>
+              <div class="actions"><a class="primary" href="#lab">학습 시작하기</a></div>
             </div>
             <img class="hero-art" src="./assets/tteokgujeon-ready.jpg" width="760" height="760" alt="잎 그림을 가리키며 웃는 떡구전">
           </header>
 
-          <section id="observe" class="lesson-section" aria-labelledby="observe-title">
-            <header class="section-heading"><p class="eyebrow">1단계</p><h2 id="observe-title">관찰 및 비교</h2><p>사진에 보이는 단서를 표와 비교해 보세요.</p></header>
-            <div class="observation-grid">
-              <div class="card traits-card">
+        </section>
+
+        <section id="lab" class="view" aria-labelledby="lab-title" hidden>
+          <header class="page-heading"><h1 id="lab-title">식물 분류 학습</h1><p>식물의 특징을 기록하고 떡구전과 함께 분류 근거를 살펴봐요.</p><div class="actions"><button type="button" class="secondary" id="go-to-coach">AI 학습 모드 선택</button></div></header>
+          <div class="lab-grid" id="lab-grid">
+            <div class="learning-workspace">
+              <details class="card traits-card"><summary>외떡잎과 쌍떡잎의 대표 특징 비교표</summary>
                 <table class="traits">
-                  <caption>외떡잎과 쌍떡잎의 대표 특징</caption>
+                  <caption class="sr-only">외떡잎과 쌍떡잎의 대표 특징</caption>
                   <thead><tr><th scope="col">관찰 단서</th><th scope="col">외떡잎식물</th><th scope="col">진정쌍떡잎식물</th></tr></thead>
                   <tbody>
                     <tr><th scope="row">잎맥</th><td>나란히맥</td><td>그물맥</td></tr>
@@ -47,62 +50,30 @@
                   </tbody>
                 </table>
                 <p class="traits-note">표는 분류군의 일반적인 경향이에요. 뿌리와 줄기 단면은 준비된 표본이나 사진에서 확인해요.</p>
-              </div>
-              <article class="card picture-card" aria-labelledby="photo-title">
-                <h3 id="photo-title">내가 관찰한 식물 사진 올리기</h3>
-                <p>잎 전체와 잎맥이 잘 보이는 사진을 골라요.</p>
-                <label class="upload">
-                  <img id="photo-preview" alt="선택한 식물 사진 미리보기" hidden>
-                  <span id="upload-placeholder" class="upload-icon" aria-hidden="true">＋</span>
-                  <strong id="photo-action">사진 선택하기</strong>
-                  <span id="photo-format">JPG, PNG, WebP 등 · 사진당 최대 13 MB</span>
-                  <input type="file" id="attachments" aria-label="내가 관찰한 식물 사진 올리기" multiple accept="image/png,image/jpeg,image/webp,image/gif,image/bmp">
-                </label>
-                <ul id="file-list" class="file-list" aria-label="첨부한 자료"></ul>
-                <p id="photo-status" class="feedback" role="status"></p>
-              </article>
-            </div>
-          </section>
-
-          <section id="lab" class="lesson-section" aria-labelledby="lab-title">
-          <header class="section-heading"><p class="eyebrow">2단계</p><h2 id="lab-title">AI 에이전트와 탐구하기</h2><p>단서를 기록하고 떡구전에게 질문해 보세요. 마지막에는 새 식물에 같은 기준을 적용해요.</p></header>
-          <nav class="steps" aria-label="탐구 단계" id="steps"></nav>
-          <div class="progress-row"><label for="step-progress" id="step-count">탐구 진행 1 / 4</label><progress id="step-progress" value="1" max="4">1 / 4</progress></div>
-          <div class="lab-grid" id="lab-grid">
-            <article class="card activity">
-              <section data-stage="observe">
-                <h3 tabindex="-1">식물의 특징 관찰하기</h3>
-                <p>한 식물을 골라 보이는 단서를 적어 보세요. 뿌리와 줄기 단면은 관찰용 표본이나 자료를 사용해요.</p>
+              </details>
+              <section class="card activity" aria-labelledby="observations-title">
+                <h2 id="observations-title">식물의 특징 기록</h2>
+                <p>확인한 특징만 적어요. 사진은 선택 사항이며, 한 기관에 한 장을 추가할 수 있어요.</p>
                 <label class="field">식물 이름 또는 표본 이름 <input data-field="specimen" maxlength="70" placeholder="예: 화단에서 찾은 식물 A"></label>
-                <div class="evidence-fields" id="evidence-fields"></div>
+                <div class="organ-grid" id="evidence-fields"></div>
               </section>
-              <section data-stage="guess" hidden>
-                <h3 tabindex="-1">내 분류 가설 세우기</h3>
+              <section class="card activity">
+                <h2>내 분류 가설 세우기</h2>
                 <p>지금 관찰한 특징을 바탕으로 어느 쪽일지 추측해요. 확실하지 않다면 판단 보류를 선택해도 좋아요.</p>
                 <label class="field">나의 첫 추측 <select data-field="hypothesis" data-classification></select></label>
                 <label class="field">그렇게 생각한 근거 <textarea data-field="reason" rows="3" maxlength="500" placeholder="어떤 특징이 어느 분류 기준과 맞았나요?"></textarea></label>
-                <div class="callout" id="review-summary"></div>
-                <div class="actions"><button type="button" class="secondary coach-action" data-coach="내 가설의 근거를 함께 검토하고, 먼저 확인할 단서 하나를 질문해 줘.">가설 검토 요청</button></div>
+                <div class="actions"><button type="button" class="secondary coach-action" data-coach="이미 적은 관찰과 가설을 참고해서, 내 근거를 스스로 점검할 수 있는 질문 하나를 해 줘.">가설 검토 요청</button></div>
                 <label class="field">검토 뒤 달라진 점 <textarea data-field="revision" rows="2" maxlength="500" placeholder="생각이 달라졌거나 더 확인하고 싶은 점을 적어 보세요."></textarea></label>
               </section>
-              <section data-stage="conclusion" hidden>
-                <h3 tabindex="-1">처음 관찰한 식물에 대한 결론</h3>
+              <section class="card activity">
+                <h2>처음 관찰한 식물에 대한 결론</h2>
                 <p>처음 추측과 지금 생각을 비교해요. 결론을 마치면 관찰 특징과 분류 결론, 첨부한 사진이 도감에 저장돼요.</p>
                 <label class="field">처음 관찰한 식물에 대한 내 결론 <select data-field="conclusion" data-classification></select></label>
                 <label class="field">최종 근거와 아직 모르는 점 <textarea data-field="conclusionReason" rows="3" maxlength="500"></textarea></label>
+                <div class="lab-footer"><button type="button" id="save-record" class="primary">결론 마치기 · 도감에 저장</button><a class="secondary" href="#journal" id="view-record" hidden>도감에서 보기</a></div>
+                <p id="lab-status" class="feedback" role="status"></p>
               </section>
-              <section data-stage="transfer" hidden>
-                <h3 tabindex="-1">새 식물에 분류 기준 적용하기</h3>
-                <div class="case-card"><strong>새로운 표본 C</strong><p>발아할 때 떡잎이 2개였고, 줄기 단면의 관다발이 고리처럼 배열되어 있어요. 꽃은 아직 보이지 않아요.</p></div>
-                <label class="field">새 식물에 대한 추측 <select data-field="transferChoice" data-classification></select></label>
-                <label class="field">어떤 분류 기준을 적용했나요? <textarea data-field="transferReason" rows="3" maxlength="500"></textarea></label>
-                <div class="actions"><button type="button" class="secondary coach-action" data-check="transfer" data-coach="표본 C에 분류 기준을 적용한 내 근거를 점검하고, 잘한 점과 더 확인할 점을 알려 줘.">AI 피드백 받기</button><button type="button" class="text-button" data-reveal="transfer">새 사례 해설 보기</button></div>
-                <p id="transfer-explanation" class="callout" hidden>떡잎 2개와 고리 모양 관다발은 이 비교에서 쌍떡잎 쪽을 지지해요. 꽃이 피면 꽃 구조를 확인해 근거를 보완할 수 있어요.</p>
-                <label class="field">더 알아보고 싶은 질문 <input data-field="nextQuestion" maxlength="200" placeholder="예: 같은 식물에서도 잎맥이 다르게 보일까?"></label>
-              </section>
-              <div class="lab-footer"><button type="button" id="prev-step" class="text-button">이전 단계</button><button type="button" id="next-step" class="primary">다음 단계</button><button type="button" id="save-record" class="primary" hidden>전이 평가 마치기</button><a class="secondary" href="#journal" id="view-record" hidden>도감에서 보기</a></div>
-              <p id="lab-status" class="feedback" role="status"></p>
-            </article>
+            </div>
             <aside class="card coach" id="lesson-coach" aria-labelledby="coach-title">
               <div class="coach-head">
                 <div class="coach-avatar">
@@ -110,22 +81,30 @@
                   <img src="./assets/tteokgujeon-thinking.jpg" width="64" height="64" data-expression="thinking" alt="답변을 생각하는 떡구전" hidden>
                   <img src="./assets/tteokgujeon-praise.jpg" width="64" height="64" data-expression="praise" alt="엄지를 들고 칭찬하는 떡구전" hidden>
                 </div>
-                <div><h2 id="coach-title">떡구전</h2><p>AI 식물 분류 도우미</p></div>
+                <div><h2 id="coach-title">떡구전</h2><p>AI 식물 분류 도우미</p><p id="mode-indicator" class="mode-indicator" aria-live="polite">학습 모드 선택 전</p></div>
               </div>
+              <fieldset class="mode-picker" id="mode-picker">
+                <legend>AI 학습 모드 선택</legend>
+                <div class="mode-cards">
+                  <label class="mode-card"><input type="radio" name="learning-mode" value="field"><span><strong><span aria-hidden="true">🌿</span> 현장 모드</strong><small>실제 식물을 직접 관찰해요.</small></span></label>
+                  <label class="mode-card"><input type="radio" name="learning-mode" value="desk"><span><strong><span aria-hidden="true">📚</span> 책상 앞 모드</strong><small>이미 주어진 사진이나 자료를 살펴봐요.</small></span></label>
+                </div>
+              </fieldset>
+              <label class="field" id="extra-topic" hidden>AI와 살펴볼 활동 <select id="extra-activity"><option value="exception">예외 사례 토의</option><option value="transfer">전이 평가</option></select></label>
+              <div id="chat-content" hidden>
               <div class="chat-log" id="chat-log" role="log" aria-label="떡구전과 나눈 대화"></div>
               <div class="chat-actions" aria-label="바로 질문하기"><button type="button" class="text-button coach-action" data-coach="잎맥이 나란히 나 있어요">잎맥이 나란히 나 있어요</button><button type="button" class="text-button coach-action" data-coach="그물처럼 얽혀 있어요">그물처럼 얽혀 있어요</button><button type="button" class="text-button coach-action" data-coach="꽃잎 수를 세어봤어요">꽃잎 수를 세어봤어요</button></div>
               <form id="chat-form"><label class="sr-only" for="chat-input">떡구전에게 질문</label><textarea id="chat-input" rows="2" maxlength="1800" placeholder="관찰한 점이나 궁금한 점을 적어 보세요."></textarea><button class="primary" type="submit">보내기</button></form>
               <details class="document-picker"><summary>문서 자료 첨부</summary><label class="field">문서 선택 <input type="file" id="documents" multiple accept=".txt,.md,.csv,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"></label><ul class="file-list" id="document-list" aria-label="첨부한 문서"></ul></details>
               <p class="chat-note" id="chat-note">AI 연결 상태를 확인하고 있어요.</p>
               <p class="feedback" id="chat-status" role="status"></p>
+              </div>
             </aside>
           </div>
-          </section>
-
         </section>
-
-        <section id="challenge" class="view" hidden aria-labelledby="challenge-title">
-            <header class="page-heading"><h1 id="challenge-title">예외 사례 토의 챌린지</h1><p>본 탐구와 별도로, 겉모양과 관찰 단서가 엇갈리는 사례를 토의해 봐요.</p></header>
+        <section id="additional" class="view" hidden aria-labelledby="additional-title">
+            <header class="page-heading"><h1 id="additional-title">추가학습</h1><p>분류 기준과 다른 사례를 살펴보고, 새로운 식물에도 같은 기준을 적용해 봐요.</p></header>
+            <h2 class="extra-heading">예외 사례 토의</h2>
             <div class="challenge-grid">
               <article class="card challenge-card">
                 <p class="challenge-clue">단서 · 굵고 단단한 줄기</p>
@@ -143,6 +122,7 @@
               </article>
             </div>
             <div class="lab-grid" id="challenge-lab">
+              <div class="learning-workspace">
               <article class="card activity">
                 <h3>단서가 엇갈리는 식물</h3>
                 <div class="case-card"><strong>표본 B</strong><ul><li>잎의 가는 잎맥은 그물처럼 이어져요.</li><li>꽃에서 꽃잎처럼 보이는 화피 조각이 6개예요.</li></ul></div>
@@ -152,8 +132,20 @@
                 <div class="actions"><button type="button" class="secondary coach-action" data-check="exception" data-coach="표본 B의 상반된 단서를 함께 따져 보고 내 추론에서 다시 생각할 점을 질문해 줘.">AI와 토의하기</button><button type="button" class="text-button" data-reveal="exception">예외 사례 해설 보기</button></div>
                 <p id="exception-status" class="feedback" role="status"></p>
                 <p id="exception-explanation" class="callout" hidden>표본 B는 청미래덩굴속을 바탕으로 구성했어요. 이 외떡잎식물에서는 가는 잎맥이 그물처럼 이어질 수 있어요. 화피 조각 6개는 외떡잎 쪽 단서예요. 예외를 설명하려면 단서를 함께 비교하고 이름표나 추가 자료도 확인해요.</p>
-                <div class="actions"><a class="secondary" href="#lab">본 탐구로 돌아가기</a></div>
               </article>
+              <section class="card activity">
+                <h3 tabindex="-1">새 식물에 분류 기준 적용하기</h3>
+                <div class="case-card"><strong>새로운 표본 C</strong><p>발아할 때 떡잎이 2개였고, 줄기 단면의 관다발이 고리처럼 배열되어 있어요. 꽃은 아직 보이지 않아요.</p></div>
+                <label class="field">새 식물에 대한 추측 <select data-field="transferChoice" data-classification></select></label>
+                <label class="field">어떤 분류 기준을 적용했나요? <textarea data-field="transferReason" rows="3" maxlength="500"></textarea></label>
+                <div class="actions"><button type="button" class="secondary coach-action" data-check="transfer" data-coach="표본 C에 분류 기준을 적용한 내 근거를 점검하고, 잘한 점과 더 확인할 점을 알려 줘.">AI 피드백 받기</button><button type="button" class="text-button" data-reveal="transfer">새 사례 해설 보기</button></div>
+                <p id="transfer-explanation" class="callout" hidden>떡잎 2개와 고리 모양 관다발은 이 비교에서 쌍떡잎 쪽을 지지해요. 꽃이 피면 꽃 구조를 확인해 근거를 보완할 수 있어요.</p>
+                <label class="field">더 알아보고 싶은 질문 <input data-field="nextQuestion" maxlength="200" placeholder="예: 같은 식물에서도 잎맥이 다르게 보일까?"></label>
+                <p id="transfer-status" class="feedback" role="status"></p>
+              </section>
+              <div class="actions"><a class="secondary" href="#lab">본 학습으로 돌아가기</a><button type="button" class="secondary" id="save-additional">추가학습 기록 저장</button></div>
+              <p class="feedback" id="additional-status" role="status"></p>
+              </div>
             </div>
         </section>
 
