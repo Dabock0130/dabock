@@ -131,8 +131,6 @@ textarea { resize: vertical }
 .card .challenge-clue { margin: 0 0 7px; color: var(--green); font-size: .875rem; font-weight: 750 }
 .card .challenge-question { margin-top: 13px; color: var(--ink); font-weight: 700 }
 .challenge-card details { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 9px }
-#challenge-lab { margin-top: 14px }
-#challenge-lab .chat-actions, #challenge-lab .document-picker { display: none }
 .feedback:empty { display: none }
 .guide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) }
 .guide { display: grid; grid-template-columns: minmax(68px, 1fr) 2fr; gap: 10px; align-items: center }
@@ -141,12 +139,20 @@ textarea { resize: vertical }
 .guide dt { color: var(--muted) }
 .guide dd { margin: 0; font-weight: 700 }
 .journal-list, .source-list { display: grid; gap: 10px }
+.journal-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px }
+.journal-count { padding: 16px clamp(10px, 2.1vw, 24px); border: 1px solid var(--line); border-radius: 15px; background: var(--paper); color: var(--green) }
+.journal-count dt { font-size: .88rem; font-weight: 700; word-break: keep-all }
+.journal-count dd { margin-top: 3px; font-size: clamp(1.75rem, 4vw, 2.8rem); font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums }
+.journal-count-total { background: var(--green); border-color: var(--green); color: #eff8d6 }
+.journal-empty { display: grid; justify-items: center; gap: 12px; padding-block: 28px; text-align: center }
+.journal-empty h2 { font-size: 1.2rem }
 .journal-list details { padding-block: 12px }
 .journal-list summary { cursor: pointer; font-weight: 750 }
 .journal-list p { white-space: pre-wrap; overflow-wrap: anywhere }
 .journal-photos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 10px; margin-top: 12px }
 .journal-photos img { display: block; width: 100%; max-height: 280px; object-fit: contain; border-radius: 8px; background: var(--paper) }
-.source-list ul { padding-left: 22px; margin-bottom: 0 }
+.reference-list { display: grid; gap: 10px; padding-left: 22px; margin-bottom: 0; overflow-wrap: anywhere }
+.reference-list small { display: block; color: var(--muted); font-size: .8125rem }
 @media (max-width: 970px) {
   .shell { grid-template-columns: 175px minmax(0, 1fr) }
   .sidebar { padding-inline: 12px }

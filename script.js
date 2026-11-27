@@ -10,15 +10,11 @@ const evidence = [
 ];
 const organNames = new Map(evidence.map(([key, name]) => [key, name]));
 const classifications = ["", "외떡잎식물로 추정", "쌍떡잎식물로 추정", "판단 보류"];
-const views = { home: "탐구 홈", lab: "학습", additional: "추가학습", guide: "개념 학습", journal: "나의 탐구 도감", sources: "참고 자료" };
+const views = { home: "탐구 홈", lab: "탐구학습", additional: "추가학습", guide: "개념학습", journal: "나의 탐구 도감", sources: "참고 자료" };
 const modeNames = { field: "현장 모드", desk: "책상 앞 모드" };
 const modeHints = {
   field: "식물을 직접 살펴보자. 지금 가장 또렷하게 보이는 특징은 뭐야?",
   desk: "이미 받은 사진이나 자료를 함께 살펴보자. 먼저 확인할 수 있는 특징 하나가 뭐야?",
-};
-const extraHints = {
-  exception: "표본 B의 두 단서가 같은 방향을 가리키니?",
-  transfer: "표본 C에서 네 추측을 가장 잘 뒷받침하는 단서는 뭐야?",
 };
 const offlineHints = {
   field: {
@@ -152,10 +148,6 @@ function conclusionLabel(value) {
 function plantValues() {
   return Object.fromEntries(Object.entries(draft).filter(([key]) => !additionalKeys.has(key)));
 }
-function additionalValues() {
-  return Object.fromEntries([...additionalKeys]
-    .filter((key) => fieldValue(key)).map((key) => [key, fieldValue(key)]));
-}
 function hydrateFields() {
   for (const field of fields) field.value = fieldValue(field.dataset.field);
 }
@@ -169,12 +161,8 @@ for (const field of fields) {
   });
 }
 
-function chatActivity() {
-  return currentView === "additional" ? $("extra-activity").value : "learn";
-}
-
 function activeChat() {
-  const key = learningMode + ":" + chatActivity();
+  const key = learningMode;
   if (!chats.has(key)) chats.set(key, { id: crypto.randomUUID(), turns: [] });
   return chats.get(key);
 }
@@ -189,12 +177,6 @@ function renderView() {
     $("chat-input").value = "";
   }
   currentView = view;
-  if (view === "lab" || view === "additional") {
-    $(view === "additional" ? "challenge-lab" : "lab-grid").append($("lesson-coach"));
-    $("extra-topic").hidden = view !== "additional" || !learningMode;
-    renderChat();
-    renderChatNote();
-  }
   for (const section of document.querySelectorAll(".view")) section.hidden = section.id !== view;
   for (const link of document.querySelectorAll(".sidebar nav a")) {
     if (link.hash === "#" + view) link.setAttribute("aria-current", "page");
@@ -203,10 +185,6 @@ function renderView() {
   $("breadcrumb").textContent = views[view];
   if (view === "journal") renderJournal();
   window.scrollTo(0, 0);
-}
-
-function hasCaseReason(kind) {
-  return Boolean(fieldValue(kind + "Choice") && fieldValue(kind + "Reason"));
 }
 
 function renderPhotos() {
@@ -290,7 +268,7 @@ function readAttachment(file) {
 
 function refreshControls() {
   const disabled = busy || reading || saving;
-  for (const button of document.querySelectorAll(".coach-action, #chat-form button, [data-new-record], #reset-observations, #reset-chat, #save-record, #save-additional")) {
+  for (const button of document.querySelectorAll(".coach-action, #chat-form button, [data-new-record], #reset-observations, #reset-chat, #save-record")) {
     button.disabled = disabled;
   }
   for (const field of fields) field.disabled = saving;
@@ -330,7 +308,6 @@ $("documents").addEventListener("change", async (event) => {
 function renderMode() {
   $("mode-indicator").textContent = modeNames[learningMode] || "학습 모드 선택 전";
   $("chat-content").hidden = !learningMode;
-  $("extra-topic").hidden = currentView !== "additional" || !learningMode;
   for (const radio of document.querySelectorAll('[name="learning-mode"]')) radio.checked = radio.value === learningMode;
   renderChat();
   renderChatNote();
@@ -343,16 +320,10 @@ $("mode-picker").addEventListener("change", (event) => {
   rememberDraft();
   renderMode();
 });
-$("extra-activity").addEventListener("change", () => {
-  $("chat-status").textContent = "";
-  $("chat-input").value = "";
-  renderChat();
-});
 $("go-to-coach").addEventListener("click", focusMode);
 $("reset-chat").addEventListener("click", () => {
   if (!learningMode || busy || reading || saving) return;
-  const suffix = ":" + chatActivity();
-  for (const key of chats.keys()) if (key.endsWith(suffix)) chats.delete(key);
+  chats.clear();
   $("chat-input").value = "";
   renderChat();
   $("chat-status").textContent = "대화를 초기화했어요.";
@@ -378,7 +349,7 @@ function renderChat() {
   }
   log.replaceChildren();
   if (!chat) return;
-  const entries = [{ text: extraHints[chatActivity()] || modeHints[learningMode] }, ...turns];
+  const entries = [{ text: modeHints[learningMode] }, ...turns];
   for (const { text, mine, files } of entries) {
     const bubble = document.createElement("div");
     bubble.className = "message" + (mine ? " me" : "");
@@ -417,7 +388,6 @@ function renderChatNote() {
   if (connectionState === "pending") return;
   $("chat-note").textContent = connectionState === "offline"
     ? "AI 연결 전에는 기기에 포함된 탐구 힌트를 보여 줘요. 입력과 사진은 전송되지 않아요."
-    : currentView === "additional" ? "보내기를 누르면 선택한 활동의 추론과 질문이 AnythingLLM에 전달돼요."
     : "보내기를 누르면 질문과 탐구 기록, 선택한 사진·문서가 AnythingLLM에 전달돼요.";
 }
 
@@ -431,22 +401,19 @@ async function send(message) {
     $("chat-status").textContent = "AI 연결을 확인하고 있어요. 잠시 뒤 다시 눌러 주세요.";
     return;
   }
-  const activity = chatActivity();
   const chat = activeChat();
   const { turns } = chat;
-  const stillVisible = () => (currentView === "lab" || currentView === "additional") && activeChat() === chat;
-  const lesson = activity === "learn" ? plantValues()
-    : Object.fromEntries([activity + "Choice", activity + "Reason"].map((key) => [key, fieldValue(key)]));
-  const attachments = activity === "learn" ? [
+  const stillVisible = () => currentView === "lab" && activeChat() === chat;
+  const attachments = [
     ...Object.entries(photos).map(([key, photo]) => ({ ...photo, name: organNames.get(key) + "-" + photo.name })),
     ...documents,
-  ] : [];
+  ];
   const existingInput = $("chat-input").value;
   const turn = { text: message, mine: true };
   turns.push(turn);
   $("chat-input").value = "";
   if (connectionState === "offline") {
-    const hint = extraHints[activity] || offlineHints[learningMode][message] || modeHints[learningMode];
+    const hint = offlineHints[learningMode][message] || modeHints[learningMode];
     turns.push({ text: "기기 내 탐구 힌트 · " + hint });
     $("chat-status").textContent = "";
     renderChat();
@@ -464,7 +431,7 @@ async function send(message) {
       body: JSON.stringify({
         message,
         sessionId: chat.id,
-        lesson: { ...lesson, stage: activity, learningMode },
+        lesson: { ...plantValues(), stage: "learn", learningMode },
         attachments,
       }),
     });
@@ -500,32 +467,30 @@ $("chat-form").addEventListener("submit", (event) => {
   }
   send(message);
 });
-for (const button of document.querySelectorAll("[data-coach], [data-reveal]")) {
-  button.addEventListener("click", () => {
-    const kind = button.dataset.check || button.dataset.reveal;
-    const status = $(kind ? kind + "-status" : "lab-status");
-    if (kind && !hasCaseReason(kind)) {
-      status.textContent = "먼저 나의 추측과 그 근거를 적어 주세요.";
-      return;
-    }
-    status.textContent = "";
-    if (button.dataset.reveal) $(kind + "-explanation").hidden = false;
-    else {
-      if (kind) $("extra-activity").value = kind;
-      send(button.dataset.coach);
-    }
-  });
+for (const button of document.querySelectorAll("[data-coach]")) {
+  button.addEventListener("click", () => send(button.dataset.coach));
+}
+
+function journalCounts(entries) {
+  let monocots = 0;
+  let eudicots = 0;
+  for (const { values } of entries) {
+    const group = values?.conclusion?.trim() || values?.hypothesis?.trim() || "";
+    if (/^외떡잎/.test(group)) monocots += 1;
+    else if (/^(?:진정\s*)?쌍떡잎/.test(group)) eudicots += 1;
+  }
+  return { monocots, eudicots };
 }
 
 function renderJournal() {
   const list = $("journal-list");
   list.replaceChildren();
-  if (!records.length) {
-    const empty = document.createElement("p");
-    empty.className = "card";
-    empty.textContent = "아직 탐구 기록이 없어요. 탐구실에서 결론을 정리하면 여기에 나타나요.";
-    list.append(empty);
-  }
+  const { monocots, eudicots } = journalCounts(records);
+  $("journal-total").textContent = String(records.length);
+  $("journal-monocots").textContent = String(monocots);
+  $("journal-eudicots").textContent = String(eudicots);
+  $("journal-empty").hidden = records.length > 0;
+  $("journal-actions").hidden = !records.length;
   for (const record of records) {
     const values = record.values || {};
     const entry = document.createElement("details");
@@ -579,7 +544,7 @@ function renderJournal() {
         lastSavedId = "";
         rememberDraft();
       }
-      $("view-record").hidden = !additionalRecord();
+      $("view-record").hidden = !journalRecord();
       $("journal-status").textContent = "도감에서 기록을 삭제했어요.";
       renderJournal();
     });
@@ -588,27 +553,25 @@ function renderJournal() {
   }
 }
 
-function additionalRecord() {
+function journalRecord() {
   return records.find((record) => record.id === recordId) || records.find((record) => record.id === lastSavedId);
 }
 
-async function saveRecord(additionalOnly = false) {
+async function saveRecord() {
   saving = true;
   refreshControls();
   try {
-    const previous = additionalOnly ? additionalRecord() : records.find((record) => record.id === recordId);
-    const targetId = additionalOnly ? previous.id : recordId;
-    const values = { ...previous?.values, ...(additionalOnly ? {} : plantValues()), ...additionalValues() };
+    const previous = records.find((record) => record.id === recordId);
+    const values = { ...previous?.values, ...plantValues() };
     const legacyPhotos = (previous?.photos || []).filter((photo) => !organNames.has(photo.organ));
-    const savedPhotos = additionalOnly ? previous.photos : [...legacyPhotos, ...Object.values(photos)];
-    const savedRecord = { id: targetId, values, photos: savedPhotos, savedAt: Date.now() };
+    const savedRecord = { id: recordId, values, photos: [...legacyPhotos, ...Object.values(photos)], savedAt: Date.now() };
     await journalRequest("readwrite", (store) => store.put(savedRecord));
-    records = [savedRecord, ...records.filter((record) => record.id !== targetId)];
-    if (!additionalOnly) photosChanged = false;
+    records = [savedRecord, ...records.filter((record) => record.id !== recordId)];
+    photosChanged = false;
     if (location.hash === "#journal") renderJournal();
     return true;
   } catch {
-    $(additionalOnly ? "additional-status" : "lab-status").textContent = "브라우저에 기록을 저장하지 못했어요. 저장 공간 설정을 확인해 주세요.";
+    $("lab-status").textContent = "브라우저에 기록을 저장하지 못했어요. 저장 공간 설정을 확인해 주세요.";
     return false;
   } finally {
     saving = false;
@@ -637,42 +600,9 @@ $("save-record").addEventListener("click", async () => {
 });
 
 
-$("save-additional").addEventListener("click", async () => {
-  if (busy || reading || saving) return;
-  const status = $("additional-status");
-  if (!Object.keys(additionalValues()).length) {
-    status.textContent = "추가학습에서 생각한 내용을 먼저 적어 주세요.";
-    return;
-  }
-  if (!additionalRecord()) {
-    status.textContent = "초안을 저장했어요. 본 학습의 결론을 저장하면 도감에서도 볼 수 있어요.";
-    return;
-  }
-  if (await saveRecord(true)) {
-    resetAdditional();
-    hydrateFields();
-    rememberDraft();
-    renderChat();
-    status.textContent = "추가학습 기록을 도감에 저장했고, 추가학습 입력란과 대화를 비웠어요.";
-  }
-});
-
-function resetAdditional() {
-  for (const key of additionalKeys) delete draft[key];
-  for (const key of chats.keys()) {
-    if (key.endsWith(":exception") || key.endsWith(":transfer")) chats.delete(key);
-  }
-  $("extra-activity").value = "exception";
-  for (const kind of ["exception", "transfer"]) {
-    $(kind + "-explanation").hidden = true;
-    $(kind + "-status").textContent = "";
-  }
-  $("additional-status").textContent = "";
-}
-
 function resetCurrentRecord(resetAll, savedId = "") {
   const oldId = recordId;
-  for (const key of Object.keys(plantValues())) delete draft[key];
+  for (const key of Object.keys(draft)) delete draft[key];
   recordId = crypto.randomUUID();
   lastSavedId = savedId;
   photos = {};
@@ -681,7 +611,6 @@ function resetCurrentRecord(resetAll, savedId = "") {
     learningMode = "";
     documents = [];
     chats.clear();
-    resetAdditional();
     $("chat-input").value = "";
     $("chat-status").textContent = "";
     renderDocuments();
@@ -701,15 +630,15 @@ $("reset-observations").addEventListener("click", () => {
   if (busy || reading || saving) return;
   const hasRecord = Object.keys(plantValues()).some((key) => fieldValue(key)) || Object.keys(photos).length;
   if (hasRecord && !window.confirm("현재 탐구의 사진과 입력한 기록을 모두 지울까요?")) return;
-  resetCurrentRecord(false, additionalRecord()?.id);
+  resetCurrentRecord(false, journalRecord()?.id);
   $("observation-status").textContent = "현재 탐구의 사진과 입력한 기록을 비웠어요.";
 });
 
 for (const button of document.querySelectorAll("[data-new-record]")) {
   button.addEventListener("click", () => {
     if (busy || reading || saving) return;
-    const previous = additionalRecord();
-    const changed = photosChanged || Object.keys(draft).some((key) => fieldValue(key) !== (previous?.values?.[key]?.trim() || ""));
+    const previous = journalRecord();
+    const changed = photosChanged || Object.keys(plantValues()).some((key) => fieldValue(key) !== (previous?.values?.[key]?.trim() || ""));
     const hasChat = [...chats.values()].some(({ turns }) => turns.length);
     if ((changed || hasChat) && !window.confirm("현재 탐구의 사진, 기록과 대화를 비우고 새로 시작할까요?")) return;
     resetCurrentRecord(true);
@@ -734,7 +663,7 @@ Promise.all([
   photosChanged = evidence.some(([key]) => photos[key]?.contentString !== savedPhotos[key]?.contentString ||
     photos[key]?.name !== savedPhotos[key]?.name);
   renderPhotos();
-  $("view-record").hidden = !additionalRecord();
+  $("view-record").hidden = !journalRecord();
   if (location.hash === "#journal") renderJournal();
 }).catch(() => {
   $("journal-status").textContent = "브라우저에서 도감 저장 공간을 열지 못했어요.";
