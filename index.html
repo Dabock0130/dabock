@@ -12,11 +12,10 @@
   <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="leaf-mono" viewBox="0 0 140 140"><path d="M68 128C56 108 34 93 32 66 30 35 56 14 109 7 96 24 95 59 83 86 77 101 72 117 68 128Z" fill="#6d9d72" stroke="#3d7751" stroke-width="1.8"/><path d="M68 128C71 100 65 71 109 7M65 116C52 82 45 57 109 7M59 108C42 77 34 49 109 7M77 106C83 82 88 54 109 7M51 95C36 70 30 40 109 7" stroke="#d9ebc8" stroke-width="1.5" fill="none"/><path d="M62 137 68 128" stroke="#456b49" stroke-width="3" stroke-linecap="round"/></symbol><symbol id="leaf-di" viewBox="0 0 140 140"><path d="M66 119C31 123 12 100 18 79 2 65 10 41 24 38 26 16 49 14 62 25 81 3 112 17 114 37 137 41 137 69 124 77 130 100 101 125 66 119Z" fill="#8ba66b" stroke="#52794f" stroke-width="1.8"/><path d="M64 134 70 112 88 28M70 110 35 84 20 79M77 88 114 65M80 68 48 42 24 38M84 50 105 33M53 97 48 75 27 54M48 94 26 103M73 104 99 98 124 77M96 99 104 113M99 77 123 86M57 50 61 30M45 43 34 24M74 91 62 70 53 63M105 70 118 47" stroke="#edf0cf" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M64 134 70 112" stroke="#52794f" stroke-width="3" stroke-linecap="round"/></symbol></defs></svg>
   <div class="shell">
     <aside class="sidebar">
-      <a class="brand" href="#home"><span class="brand-icon" aria-hidden="true">✿</span><span>떡구전<small>중학교 생명과학 탐구</small></span></a>
+      <a class="brand" href="#home"><span class="brand-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 20v-8M12 14c-5.7 0-8-3.7-8-8 4.5 0 8 2.4 8 8ZM12 14c0-5.6 3.5-8 8-8 0 4.3-2.3 8-8 8Z"/></svg></span><span>떡구전<small>중학교 생명과학 탐구</small></span></a>
       <nav aria-label="탐구 메뉴">
         <a href="#home">탐구 홈</a><a href="#lab">학습</a><a href="#additional">추가학습</a><a href="#guide">개념 학습</a><a href="#journal">나의 탐구 도감</a><a href="#sources">참고 자료</a>
       </nav>
-      <div class="field-note"><strong>현장 관찰 약속</strong><p>식물을 꺾거나 뽑지 않아요. 보기 어려운 부분은 특징 입력란에 적어요.</p></div>
     </aside>
     <main class="main" id="main">
       <div class="topbar"><span id="breadcrumb">탐구 홈</span><span class="connection" id="connection" role="status" data-state="pending">AI 연결 확인 중</span></div>
@@ -35,7 +34,7 @@
         </section>
 
         <section id="lab" class="view" aria-labelledby="lab-title" hidden>
-          <header class="page-heading"><h1 id="lab-title">식물 분류 학습</h1><p>식물의 특징을 기록하고 떡구전과 함께 분류 근거를 살펴봐요.</p><div class="actions"><button type="button" class="secondary" id="go-to-coach">AI 학습 모드 선택</button></div></header>
+          <header class="page-heading"><h1 id="lab-title" tabindex="-1">식물 분류 학습</h1><p>식물의 특징을 기록하고 떡구전과 함께 분류 근거를 살펴봐요.</p><div class="actions"><button type="button" class="secondary" id="go-to-coach">AI 학습 모드 선택</button><button type="button" class="secondary" data-new-record>새 식물 탐구하기</button></div></header>
           <div class="lab-grid" id="lab-grid">
             <div class="learning-workspace">
               <details class="card traits-card"><summary>외떡잎과 쌍떡잎의 대표 특징 비교표</summary>
@@ -56,6 +55,8 @@
                 <p>확인한 특징을 적어요. 보기 어려운 부분은 특징 입력란에 ‘확인하기 어려움’처럼 적어도 돼요. 사진은 한 기관에 한 장씩 올릴 수 있어요.</p>
                 <label class="field">식물 이름 또는 표본 이름 <input data-field="specimen" maxlength="70" placeholder="예: 화단에서 찾은 식물 A"></label>
                 <div class="organ-grid" id="evidence-fields"></div>
+                <div class="actions"><button type="button" class="secondary" id="reset-observations">사진·기록 초기화</button></div>
+                <p id="observation-status" class="feedback" role="status"></p>
               </section>
               <section class="card activity">
                 <h2>내 분류 가설 세우기</h2>
@@ -67,7 +68,7 @@
               </section>
               <section class="card activity">
                 <h2>처음 관찰한 식물에 대한 결론</h2>
-                <p>처음 추측과 지금 생각을 비교해요. 결론을 마치면 관찰 특징과 분류 결론, 첨부한 사진이 도감에 저장돼요.</p>
+                <p>처음 추측과 지금 생각을 비교해요. 도감에 기록을 저장하면 새 탐구를 시작할 수 있도록 입력란과 대화가 비워져요.</p>
                 <label class="field">처음 관찰한 식물에 대한 내 결론 <select data-field="conclusion" data-classification></select></label>
                 <label class="field">최종 근거와 아직 모르는 점 <textarea data-field="conclusionReason" rows="3" maxlength="500"></textarea></label>
                 <div class="lab-footer"><button type="button" id="save-record" class="primary">결론 마치기 · 도감에 저장</button><a class="secondary" href="#journal" id="view-record" hidden>도감에서 보기</a></div>
@@ -92,6 +93,7 @@
               </fieldset>
               <label class="field" id="extra-topic" hidden>AI와 살펴볼 활동 <select id="extra-activity"><option value="exception">예외 사례 토의</option><option value="transfer">전이 평가</option></select></label>
               <div id="chat-content" hidden>
+              <div class="chat-toolbar"><button type="button" class="secondary" id="reset-chat">대화 초기화</button></div>
               <div class="chat-log" id="chat-log" role="log" aria-label="떡구전과 나눈 대화"></div>
               <div class="chat-actions" aria-label="바로 질문하기"><button type="button" class="text-button coach-action" data-coach="잎맥이 나란히 나 있어요">잎맥이 나란히 나 있어요</button><button type="button" class="text-button coach-action" data-coach="그물처럼 얽혀 있어요">그물처럼 얽혀 있어요</button><button type="button" class="text-button coach-action" data-coach="꽃잎 수를 세어봤어요">꽃잎 수를 세어봤어요</button></div>
               <form id="chat-form"><label class="sr-only" for="chat-input">떡구전에게 질문</label><textarea id="chat-input" rows="2" maxlength="1800" placeholder="관찰한 점이나 궁금한 점을 적어 보세요."></textarea><button class="primary" type="submit">보내기</button></form>
@@ -162,7 +164,7 @@
           <header class="page-heading"><p class="eyebrow">탐구 기록</p><h1 id="journal-title">나의 탐구 도감</h1><p>관찰 특징, 분류 결론, 사진을 다시 볼 수 있어요. 기록은 이 브라우저에 저장돼요.</p></header>
           <div class="journal-list" id="journal-list"></div>
           <p class="feedback" id="journal-status" role="status"></p>
-          <div class="actions"><a class="secondary" href="#lab" id="continue-record">현재 탐구 계속하기</a><button type="button" id="new-record" class="primary">새 식물 탐구하기</button></div>
+          <div class="actions"><a class="secondary" href="#lab" id="continue-record">현재 탐구 계속하기</a><button type="button" class="primary" data-new-record>새 식물 탐구하기</button></div>
         </section>
 
         <section id="sources" class="view" hidden aria-labelledby="sources-title">

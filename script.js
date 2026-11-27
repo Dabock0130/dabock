@@ -40,6 +40,7 @@ const imageTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"
 const documentTypes = /\.(txt|md|csv|pdf|docx?|pptx?|xlsx?)$/i;
 const maxFileBytes = 13 * 1024 * 1024;
 const maxTotalBytes = 22 * 1024 * 1024;
+const additionalKeys = new Set(["exceptionChoice", "exceptionReason", "transferChoice", "transferReason", "nextQuestion"]);
 
 function readStorage(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
@@ -93,6 +94,7 @@ let records = Array.isArray(storedRecords) ? storedRecords : [];
 const journalDatabase = openStorage("plant-observation-journal", "records", records);
 const photoDraftDatabase = openStorage("plant-observation-draft-photos", "draftPhotos");
 let recordId = typeof saved.id === "string" ? saved.id : crypto.randomUUID();
+let lastSavedId = typeof saved.lastSavedId === "string" ? saved.lastSavedId : "";
 let learningMode = Object.hasOwn(modeNames, saved.mode) ? saved.mode : "";
 let busy = false;
 let pendingChat = null;
@@ -148,18 +150,17 @@ function conclusionLabel(value) {
   return (value || "").replace(/로 추정$/, "");
 }
 function plantValues() {
-  const { exceptionChoice, exceptionReason, transferChoice, transferReason, nextQuestion, ...values } = draft;
-  return values;
+  return Object.fromEntries(Object.entries(draft).filter(([key]) => !additionalKeys.has(key)));
 }
 function additionalValues() {
-  return Object.fromEntries(["exceptionChoice", "exceptionReason", "transferChoice", "transferReason", "nextQuestion"]
+  return Object.fromEntries([...additionalKeys]
     .filter((key) => fieldValue(key)).map((key) => [key, fieldValue(key)]));
 }
 function hydrateFields() {
   for (const field of fields) field.value = fieldValue(field.dataset.field);
 }
 function rememberDraft() {
-  writeStorage(draftKey, { id: recordId, mode: learningMode, draft });
+  writeStorage(draftKey, { id: recordId, lastSavedId, mode: learningMode, draft });
 }
 for (const field of fields) {
   field.addEventListener("input", () => {
@@ -289,14 +290,13 @@ function readAttachment(file) {
 
 function refreshControls() {
   const disabled = busy || reading || saving;
-  for (const button of document.querySelectorAll(".coach-action, #chat-form button, #new-record")) {
+  for (const button of document.querySelectorAll(".coach-action, #chat-form button, [data-new-record], #reset-observations, #reset-chat, #save-record, #save-additional")) {
     button.disabled = disabled;
   }
+  for (const field of fields) field.disabled = saving;
   for (const radio of document.querySelectorAll('[name="learning-mode"]')) radio.disabled = busy;
   for (const { input, remove } of photoControls.values()) input.disabled = remove.disabled = disabled;
   $("documents").disabled = disabled;
-  $("save-record").disabled = reading || saving;
-  $("save-additional").disabled = reading || saving;
 }
 
 $("documents").addEventListener("change", async (event) => {
@@ -349,6 +349,15 @@ $("extra-activity").addEventListener("change", () => {
   renderChat();
 });
 $("go-to-coach").addEventListener("click", focusMode);
+$("reset-chat").addEventListener("click", () => {
+  if (!learningMode || busy || reading || saving) return;
+  const suffix = ":" + chatActivity();
+  for (const key of chats.keys()) if (key.endsWith(suffix)) chats.delete(key);
+  $("chat-input").value = "";
+  renderChat();
+  $("chat-status").textContent = "대화를 초기화했어요.";
+  $("chat-input").focus();
+});
 function focusMode() {
   const choice = $("mode-picker").querySelector("input:checked") || $("mode-picker").querySelector("input");
   choice.focus();
@@ -566,6 +575,11 @@ function renderJournal() {
         return;
       }
       records = records.filter((item) => item.id !== record.id);
+      if (lastSavedId === record.id) {
+        lastSavedId = "";
+        rememberDraft();
+      }
+      $("view-record").hidden = !additionalRecord();
       $("journal-status").textContent = "도감에서 기록을 삭제했어요.";
       renderJournal();
     });
@@ -574,17 +588,22 @@ function renderJournal() {
   }
 }
 
+function additionalRecord() {
+  return records.find((record) => record.id === recordId) || records.find((record) => record.id === lastSavedId);
+}
+
 async function saveRecord(additionalOnly = false) {
   saving = true;
   refreshControls();
   try {
-    const previous = records.find((record) => record.id === recordId);
+    const previous = additionalOnly ? additionalRecord() : records.find((record) => record.id === recordId);
+    const targetId = additionalOnly ? previous.id : recordId;
     const values = { ...previous?.values, ...(additionalOnly ? {} : plantValues()), ...additionalValues() };
     const legacyPhotos = (previous?.photos || []).filter((photo) => !organNames.has(photo.organ));
     const savedPhotos = additionalOnly ? previous.photos : [...legacyPhotos, ...Object.values(photos)];
-    const savedRecord = { id: recordId, values, photos: savedPhotos, savedAt: Date.now() };
+    const savedRecord = { id: targetId, values, photos: savedPhotos, savedAt: Date.now() };
     await journalRequest("readwrite", (store) => store.put(savedRecord));
-    records = [savedRecord, ...records.filter((record) => record.id !== recordId)];
+    records = [savedRecord, ...records.filter((record) => record.id !== targetId)];
     if (!additionalOnly) photosChanged = false;
     if (location.hash === "#journal") renderJournal();
     return true;
@@ -598,7 +617,7 @@ async function saveRecord(additionalOnly = false) {
 }
 
 $("save-record").addEventListener("click", async () => {
-  if (reading || saving) return;
+  if (busy || reading || saving) return;
   const status = $("lab-status");
   const conclusion = fieldValue("conclusion");
   if (!conclusion || !fieldValue("conclusionReason")) {
@@ -612,56 +631,92 @@ $("save-record").addEventListener("click", async () => {
     return;
   }
   if (await saveRecord()) {
-    $("view-record").hidden = false;
-    status.textContent = "나의 탐구 도감에 저장했어요.";
+    resetCurrentRecord(true, recordId);
+    status.textContent = "나의 탐구 도감에 저장했어요. 새 탐구를 시작할 수 있어요.";
   }
 });
 
 
 $("save-additional").addEventListener("click", async () => {
-  if (reading || saving) return;
+  if (busy || reading || saving) return;
   const status = $("additional-status");
   if (!Object.keys(additionalValues()).length) {
     status.textContent = "추가학습에서 생각한 내용을 먼저 적어 주세요.";
     return;
   }
-  if (!records.some((record) => record.id === recordId)) {
+  if (!additionalRecord()) {
     status.textContent = "초안을 저장했어요. 본 학습의 결론을 저장하면 도감에서도 볼 수 있어요.";
     return;
   }
-  if (await saveRecord(true)) status.textContent = "추가학습 기록을 나의 탐구 도감에 저장했어요.";
+  if (await saveRecord(true)) {
+    resetAdditional();
+    hydrateFields();
+    rememberDraft();
+    renderChat();
+    status.textContent = "추가학습 기록을 도감에 저장했고, 추가학습 입력란과 대화를 비웠어요.";
+  }
 });
 
-$("new-record").addEventListener("click", () => {
-  const previous = records.find((record) => record.id === recordId);
-  const changed = photosChanged || Object.keys(draft).some((key) => fieldValue(key) !== (previous?.values?.[key]?.trim() || ""));
-  if (changed && !window.confirm("저장하지 않은 탐구 내용을 비우고 새로 시작할까요?")) return;
-  const oldId = recordId;
-  for (const key of Object.keys(draft)) delete draft[key];
-  recordId = crypto.randomUUID();
-  learningMode = "";
-  photos = {};
-  documents = [];
-  photosChanged = false;
-  chats.clear();
+function resetAdditional() {
+  for (const key of additionalKeys) delete draft[key];
+  for (const key of chats.keys()) {
+    if (key.endsWith(":exception") || key.endsWith(":transfer")) chats.delete(key);
+  }
   $("extra-activity").value = "exception";
   for (const kind of ["exception", "transfer"]) {
     $(kind + "-explanation").hidden = true;
     $(kind + "-status").textContent = "";
   }
   $("additional-status").textContent = "";
-  $("chat-input").value = "";
+}
+
+function resetCurrentRecord(resetAll, savedId = "") {
+  const oldId = recordId;
+  for (const key of Object.keys(plantValues())) delete draft[key];
+  recordId = crypto.randomUUID();
+  lastSavedId = savedId;
+  photos = {};
+  photosChanged = false;
+  if (resetAll) {
+    learningMode = "";
+    documents = [];
+    chats.clear();
+    resetAdditional();
+    $("chat-input").value = "";
+    $("chat-status").textContent = "";
+    renderDocuments();
+    renderMode();
+  }
   $("lab-status").textContent = "";
-  $("view-record").hidden = true;
+  $("observation-status").textContent = "";
+  $("view-record").hidden = !savedId;
   for (const controls of photoControls.values()) controls.status.textContent = "";
   hydrateFields();
   rememberDraft();
   renderPhotos();
-  renderDocuments();
-  renderMode();
   journalRequest("readwrite", (store) => store.delete(oldId), "draftPhotos").catch(() => {});
-  location.hash = "lab";
+}
+
+$("reset-observations").addEventListener("click", () => {
+  if (busy || reading || saving) return;
+  const hasRecord = Object.keys(plantValues()).some((key) => fieldValue(key)) || Object.keys(photos).length;
+  if (hasRecord && !window.confirm("현재 탐구의 사진과 입력한 기록을 모두 지울까요?")) return;
+  resetCurrentRecord(false, additionalRecord()?.id);
+  $("observation-status").textContent = "현재 탐구의 사진과 입력한 기록을 비웠어요.";
 });
+
+for (const button of document.querySelectorAll("[data-new-record]")) {
+  button.addEventListener("click", () => {
+    if (busy || reading || saving) return;
+    const previous = additionalRecord();
+    const changed = photosChanged || Object.keys(draft).some((key) => fieldValue(key) !== (previous?.values?.[key]?.trim() || ""));
+    const hasChat = [...chats.values()].some(({ turns }) => turns.length);
+    if ((changed || hasChat) && !window.confirm("현재 탐구의 사진, 기록과 대화를 비우고 새로 시작할까요?")) return;
+    resetCurrentRecord(true);
+    if (currentView === "lab") $("lab-title").focus();
+    else location.hash = "lab";
+  });
+}
 
 window.addEventListener("hashchange", renderView);
 hydrateFields();
@@ -679,7 +734,7 @@ Promise.all([
   photosChanged = evidence.some(([key]) => photos[key]?.contentString !== savedPhotos[key]?.contentString ||
     photos[key]?.name !== savedPhotos[key]?.name);
   renderPhotos();
-  $("view-record").hidden = !previous;
+  $("view-record").hidden = !additionalRecord();
   if (location.hash === "#journal") renderJournal();
 }).catch(() => {
   $("journal-status").textContent = "브라우저에서 도감 저장 공간을 열지 못했어요.";
