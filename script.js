@@ -4,10 +4,10 @@ const $ = (id) => document.getElementById(id);
 const stages = [
   ["observe", "관찰", "어떤 식물을 살펴볼까요? 사진이나 표본에서 보이는 단서 한 가지부터 기록해 봐요."],
   ["guess", "추론", "관찰한 단서가 어느 쪽을 가리키나요? 추측과 그렇게 생각한 이유를 말해 봐요."],
-  ["exception", "예외 토의", "표본 B의 두 단서가 같은 방향을 가리키나요? 네 생각을 먼저 알려 줘요."],
   ["conclusion", "결론", "처음 생각에서 무엇이 달라졌나요? 어떤 단서가 결론을 지지하는지 말해 봐요."],
   ["transfer", "전이 평가", "새로운 표본 C에도 분류 기준을 써 봐요. 무엇을 더 확인하고 싶나요?"],
 ];
+const exceptionHint = "표본 B의 두 단서가 같은 방향을 가리키나요? 네 생각을 먼저 알려 줘요.";
 const evidence = [
   ["cotyledons", "떡잎의 수", "예: 싹에서 2개가 보임"],
   ["veins", "잎맥과 잎 모양", "예: 잎이 길고 잎맥이 나란함"],
@@ -16,11 +16,11 @@ const evidence = [
   ["bundles", "줄기의 관다발", "예: 단면 가장자리에 고리 모양"],
 ];
 const classifications = ["", "외떡잎식물로 추정", "쌍떡잎식물로 추정", "판단 보류"];
-const views = { home: "탐구 홈", observe: "관찰 및 비교", lab: "AI 탐구실", challenge: "예외 사례", guide: "개념 학습", journal: "나의 탐구 도감", sources: "참고 자료" };
-const lessonAnchors = new Set(["observe", "lab", "challenge"]);
+const views = { home: "탐구 홈", observe: "관찰 및 비교", lab: "AI 탐구실", challenge: "예외 토의", guide: "개념 학습", journal: "나의 탐구 도감", sources: "참고 자료" };
+const lessonAnchors = new Set(["observe", "lab"]);
 const offlineHints = new Map([
   ["잎맥이 나란히 나 있어요", "굵은 맥이 잎 밑에서 끝까지 비슷한 방향으로 이어지나요? 꽃도 보인다면 꽃 한 송이의 화피 조각을 세어 두 단서를 비교해 보세요."],
-  ["그물처럼 얽혀 있어요", "굵은 맥에서 갈라진 작은 맥들이 다시 이어지는지 살펴봐요. 청미래덩굴처럼 작은 맥이 그물 모양인 외떡잎식물도 있어요. 다른 단서는 무엇이 보이나요?"],
+  ["그물처럼 얽혀 있어요", "굵은 잎맥에서 갈라진 작은 맥들이 다시 이어지는지 살펴봐요. 이 모양을 관찰 기록에 어떻게 적을까요?"],
   ["꽃잎 수를 세어봤어요", "꽃 한 송이의 꽃잎이나 화피 조각을 몇 개 셌나요? 작은 꽃들이 모여 있다면 한 송이의 경계를 먼저 찾고, 잎맥 관찰 결과와 비교해 봐요."],
 ]);
 const draftKey = "plant-observation-lesson-draft-v1";
@@ -44,19 +44,50 @@ function writeStorage(key, data) {
   }
 }
 
+function openJournal() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("plant-observation-journal", 1);
+    request.onupgradeneeded = () => {
+      const store = request.result.createObjectStore("records", { keyPath: "id" });
+      for (const record of records) {
+        if (typeof record?.id === "string") store.put(record);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error("도감을 열 수 없어요."));
+  });
+}
+
+async function journalRequest(mode, action) {
+  const database = await journalDatabase;
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction("records", mode);
+    const request = action(transaction.objectStore("records"));
+    transaction.oncomplete = () => resolve(request.result);
+    transaction.onabort = () => reject(transaction.error);
+  });
+}
+
 const saved = readStorage(draftKey, {});
 const draft = saved.draft && typeof saved.draft === "object" ? saved.draft : {};
 const storedRecords = readStorage(journalKey, []);
 let records = Array.isArray(storedRecords) ? storedRecords : [];
+const journalDatabase = openJournal();
 let recordId = typeof saved.id === "string" ? saved.id : crypto.randomUUID();
-const savedIndex = Number.isInteger(saved.stage) ? [0, 1, 1, 2, 3][saved.stage]
-  : stages.findIndex(([id]) => id === saved.stage);
+const savedStage = Number.isInteger(saved.stage) ? ["observe", "guess", "guess", "conclusion", "transfer"][saved.stage] : saved.stage;
+const savedIndex = stages.findIndex(([id]) => id === (savedStage === "exception" ? "conclusion" : savedStage));
 let stage = stages[savedIndex] ? savedIndex : 0;
 let sessionId = crypto.randomUUID();
 let busy = false;
 let reading = false;
+let saving = false;
 let connectionState = "pending";
 let attachments = [];
+let photosChanged = false;
+let inChallenge = false;
+const exceptionSession = crypto.randomUUID();
+const exceptionConversation = [];
 const conversations = stages.map(() => []);
 
 for (const [key, label, example] of evidence) {
@@ -72,11 +103,21 @@ for (const [key, label, example] of evidence) {
 }
 
 for (const select of document.querySelectorAll("[data-classification]")) {
-  for (const value of classifications) select.add(new Option(value || "선택해 주세요", value));
+  for (const value of classifications) {
+    const label = select.dataset.field === "conclusion" ? conclusionLabel(value) : value;
+    select.add(new Option(label || "선택해 주세요", value));
+  }
 }
 
 const fields = [...document.querySelectorAll("[data-field]")];
 const fieldValue = (key) => typeof draft[key] === "string" ? draft[key].trim() : "";
+function conclusionLabel(value) {
+  return (value || "").replace(/로 추정$/, "");
+}
+function plantValues() {
+  const { exceptionChoice, exceptionReason, ...values } = draft;
+  return values;
+}
 function hydrateFields() {
   for (const field of fields) field.value = fieldValue(field.dataset.field);
 }
@@ -106,6 +147,15 @@ function renderView() {
   const hash = location.hash.slice(1);
   const target = Object.hasOwn(views, hash) ? hash : "home";
   const view = lessonAnchors.has(target) ? "home" : target;
+  const wasInChallenge = inChallenge;
+  inChallenge = view === "challenge";
+  if (inChallenge !== wasInChallenge) {
+    $(inChallenge ? "challenge-lab" : "lab-grid").append($("lesson-coach"));
+    $("chat-input").value = "";
+    $("chat-status").textContent = "";
+    renderChat();
+    renderChatNote();
+  }
   for (const section of document.querySelectorAll(".view")) section.hidden = section.id !== view;
   for (const link of document.querySelectorAll(".sidebar nav a")) {
     if (link.hash === "#" + target) link.setAttribute("aria-current", lessonAnchors.has(target) ? "location" : "page");
@@ -121,9 +171,8 @@ function validateStep(index) {
   const observed = evidence.some(([key]) => !/^(?:확인\s*못함|관찰\s*못함|모름|없음)?$/.test(fieldValue(key)));
   if (index === 0 && !observed) return "눈으로 확인한 특징을 한 가지 이상 적어 주세요.";
   if (index === 1 && (!fieldValue("hypothesis") || !fieldValue("reason"))) return "첫 추측과 그 근거를 적어 주세요.";
-  if (index === 2 && !hasCaseReason("exception")) return "표본 B에 대한 추론과 근거를 적어 주세요.";
-  if (index === 3 && (!fieldValue("conclusion") || !fieldValue("conclusionReason"))) return "처음 식물에 대한 최종 결론과 근거를 적어 주세요.";
-  if (index === 4 && !hasCaseReason("transfer")) return "새 식물에 대한 추측과 근거를 적어 주세요.";
+  if (stages[index][0] === "conclusion" && (!fieldValue("conclusion") || !fieldValue("conclusionReason"))) return "처음 식물에 대한 최종 결론과 근거를 적어 주세요.";
+  if (stages[index][0] === "transfer" && !hasCaseReason("transfer")) return "새 식물에 대한 추측과 근거를 적어 주세요.";
   return "";
 }
 
@@ -131,7 +180,8 @@ function hasCaseReason(kind) {
   return Boolean(fieldValue(kind + "Choice") && fieldValue(kind + "Reason"));
 }
 
-function moveTo(next) {
+async function moveTo(next) {
+  if (saving || reading) return;
   for (let index = 0; index < next; index += 1) {
     const issue = validateStep(index);
     if (issue) {
@@ -140,7 +190,15 @@ function moveTo(next) {
       return;
     }
   }
+  const conclusionIndex = stages.findIndex(([id]) => id === "conclusion");
+  const justSaved = next > conclusionIndex && stage <= conclusionIndex;
+  if (justSaved && !await saveRecord()) return;
   showStep(next, true);
+  if (justSaved) {
+    $("lab-status").textContent = attachments.some((item) => imageTypes.has(item.mime))
+      ? "관찰 특징, 결론, 사진을 도감에 저장했어요."
+      : "관찰 특징과 결론을 도감에 저장했어요.";
+  }
 }
 
 function showStep(index, focus) {
@@ -156,7 +214,9 @@ function showStep(index, focus) {
   $("step-count").textContent = "탐구 진행 " + (stage + 1) + " / " + stages.length;
   $("prev-step").hidden = stage === 0;
   $("next-step").hidden = stage === stages.length - 1;
+  $("next-step").textContent = current === "conclusion" ? "결론 마치기 · 도감에 자동 저장" : "다음 단계";
   $("save-record").hidden = stage !== stages.length - 1;
+  $("view-record").hidden = current !== "transfer" || !records.some((record) => record.id === recordId);
   $("lab-status").textContent = "";
   $("chat-status").textContent = "";
   const summary = $("review-summary");
@@ -191,7 +251,9 @@ function renderAttachments() {
     button.textContent = "제거";
     button.setAttribute("aria-label", item.name + " 제거");
     button.addEventListener("click", () => {
+      if (saving) return;
       attachments.splice(index, 1);
+      if (imageTypes.has(item.mime)) photosChanged = true;
       renderAttachments();
     });
     li.append(item.name, button);
@@ -209,12 +271,15 @@ function readAttachment(file) {
 }
 
 function refreshControls() {
-  const disabled = busy || reading;
+  const disabled = busy || reading || saving;
   for (const button of document.querySelectorAll(".coach-action, #chat-form button, #new-record")) {
     button.disabled = disabled;
   }
   $("attachments").disabled = disabled;
   $("documents").disabled = disabled;
+  for (const button of [...stepButtons, $("prev-step"), $("next-step"), $("save-record")]) {
+    button.disabled = reading || saving;
+  }
 }
 
 async function addAttachments(event) {
@@ -234,7 +299,10 @@ async function addAttachments(event) {
         skipped.push(file.name);
         continue;
       }
-      try { attachments.push(await readAttachment(file)); }
+      try {
+        attachments.push(await readAttachment(file));
+        if (fromPhotos) photosChanged = true;
+      }
       catch { skipped.push(file.name); }
     }
     renderAttachments();
@@ -252,7 +320,8 @@ $("documents").addEventListener("change", addAttachments);
 function renderChat() {
   const log = $("chat-log");
   log.replaceChildren();
-  const entries = [{ text: stages[stage][2] }, ...conversations[stage]];
+  const entries = inChallenge ? [{ text: exceptionHint }, ...exceptionConversation]
+    : [{ text: stages[stage][2] }, ...conversations[stage]];
   for (const { text, mine, files } of entries) {
     const bubble = document.createElement("div");
     bubble.className = "message" + (mine ? " me" : "");
@@ -279,13 +348,20 @@ async function checkConnection() {
     if (!response.ok || !(await response.json()).connected) throw Error();
     label.textContent = "AnythingLLM 연결됨";
     connectionState = "online";
-    $("chat-note").textContent = "보내기를 누르면 질문과 탐구 기록, 선택한 사진·문서가 AnythingLLM에 전달돼요.";
   } catch {
     label.textContent = "기기 내 힌트 모드";
     connectionState = "offline";
-    $("chat-note").textContent = "AI 연결 전에는 기기에 포함된 탐구 힌트를 보여 줘요. 입력과 사진은 전송되지 않아요.";
   }
   label.dataset.state = connectionState;
+  renderChatNote();
+}
+
+function renderChatNote() {
+  if (connectionState === "pending") return;
+  $("chat-note").textContent = connectionState === "offline"
+    ? "AI 연결 전에는 기기에 포함된 탐구 힌트를 보여 줘요. 입력과 사진은 전송되지 않아요."
+    : inChallenge ? "보내기를 누르면 예외 사례에 대한 추론과 질문이 AnythingLLM에 전달돼요."
+    : "보내기를 누르면 질문과 탐구 기록, 선택한 사진·문서가 AnythingLLM에 전달돼요.";
 }
 
 async function send(message) {
@@ -295,13 +371,17 @@ async function send(message) {
     return;
   }
   const sentAt = stage;
+  const sentInChallenge = inChallenge;
+  const turns = sentInChallenge ? exceptionConversation : conversations[sentAt];
+  const stillVisible = () => inChallenge === sentInChallenge && (sentInChallenge || stage === sentAt);
+  const [exceptionChoice, exceptionReason] = [fieldValue("exceptionChoice"), fieldValue("exceptionReason")];
   const existingInput = $("chat-input").value;
   const turn = { text: message, mine: true };
-  conversations[sentAt].push(turn);
+  turns.push(turn);
   $("chat-input").value = "";
   if (connectionState === "offline") {
-    const hint = offlineHints.get(message) || stages[sentAt][2];
-    conversations[sentAt].push({ text: "기기 내 탐구 힌트 · " + hint });
+    const hint = sentInChallenge ? exceptionHint : offlineHints.get(message) || stages[sentAt][2];
+    turns.push({ text: "기기 내 탐구 힌트 · " + hint });
     $("chat-status").textContent = "";
     renderChat();
     return;
@@ -316,9 +396,10 @@ async function send(message) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message,
-        sessionId,
-        lesson: { ...draft, stage: stages[sentAt][0] },
-        attachments,
+        sessionId: sentInChallenge ? exceptionSession : sessionId,
+        lesson: sentInChallenge ? { exceptionChoice, exceptionReason, stage: "exception" }
+          : { ...plantValues(), stage: stages[sentAt][0] },
+        attachments: sentInChallenge ? [] : attachments,
       }),
     });
     const body = await response.json();
@@ -326,11 +407,11 @@ async function send(message) {
       throw new Error(response.status === 503 ? "AI 연결을 확인해 주세요. 관찰과 기록은 계속할 수 있어요."
         : body.error || "답변을 받지 못했어요. 다시 보내 주세요.");
     }
-    conversations[sentAt].push({ text: body.textResponse, files: body.files });
-    if (stage === sentAt) $("chat-status").textContent = "";
+    turns.push({ text: body.textResponse, files: body.files });
+    if (stillVisible()) $("chat-status").textContent = "";
   } catch (error) {
-    conversations[sentAt].pop();
-    if (stage === sentAt) {
+    turns.pop();
+    if (stillVisible()) {
       $("chat-input").value ||= existingInput || message;
       $("chat-status").textContent = error instanceof SyntaxError || error instanceof TypeError
         ? "AI 연결을 확인해 주세요. 관찰과 기록은 계속할 수 있어요." : error.message;
@@ -355,11 +436,12 @@ $("chat-form").addEventListener("submit", (event) => {
 for (const button of document.querySelectorAll("[data-coach], [data-reveal]")) {
   button.addEventListener("click", () => {
     const kind = button.dataset.check || button.dataset.reveal;
+    const status = $(kind === "exception" ? "exception-status" : "lab-status");
     if (kind && !hasCaseReason(kind)) {
-      $("lab-status").textContent = "먼저 나의 추측과 그 근거를 적어 주세요.";
+      status.textContent = "먼저 나의 추측과 그 근거를 적어 주세요.";
       return;
     }
-    $("lab-status").textContent = "";
+    status.textContent = "";
     if (button.dataset.reveal) $(kind + "-explanation").hidden = false;
     else send(button.dataset.coach);
   });
@@ -380,8 +462,21 @@ function renderJournal() {
     entry.className = "card";
     const summary = document.createElement("summary");
     const date = new Date(record.savedAt).toLocaleDateString("ko-KR");
-    summary.textContent = (values.specimen || "이름을 적지 않은 표본") + " · " + date + " · " + (values.conclusion || "");
+    summary.textContent = (values.specimen || "이름을 적지 않은 표본") + " · " + date + " · " + conclusionLabel(values.conclusion);
     entry.append(summary);
+    if (Array.isArray(record.photos) && record.photos.length) {
+      const gallery = document.createElement("div");
+      gallery.className = "journal-photos";
+      for (const photo of record.photos) {
+        if (!imageTypes.has(photo.mime) || !photo.contentString?.startsWith("data:" + photo.mime + ";base64,")) continue;
+        const image = document.createElement("img");
+        image.src = photo.contentString;
+        image.alt = photo.name || "관찰한 식물 사진";
+        image.loading = "lazy";
+        gallery.append(image);
+      }
+      entry.append(gallery);
+    }
     const recordFields = [
       ...evidence, ["hypothesis", "첫 추측"], ["reason", "첫 근거"], ["revision", "검토 후 생각"],
       ["exceptionChoice", "예외 사례 추론"], ["exceptionReason", "예외 사례 근거"],
@@ -391,21 +486,24 @@ function renderJournal() {
     for (const [key, label] of recordFields) {
       if (!values[key]) continue;
       const p = document.createElement("p");
-      p.textContent = label + " · " + values[key];
+      p.textContent = label + " · " + (key === "conclusion" ? conclusionLabel(values[key]) : values[key]);
       entry.append(p);
     }
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "text-button";
     remove.textContent = "이 기록 삭제";
-    remove.addEventListener("click", () => {
+    remove.addEventListener("click", async () => {
       if (!window.confirm("도감에서 이 기록을 삭제할까요?")) return;
-      const remaining = records.filter((item) => item.id !== record.id);
-      if (!writeStorage(journalKey, remaining)) {
+      remove.disabled = true;
+      try {
+        await journalRequest("readwrite", (store) => store.delete(record.id));
+      } catch {
+        remove.disabled = false;
         $("journal-status").textContent = "기록을 삭제하지 못했어요.";
         return;
       }
-      records = remaining;
+      records = records.filter((item) => item.id !== record.id);
       $("journal-status").textContent = "도감에서 기록을 삭제했어요.";
       renderJournal();
     });
@@ -414,7 +512,33 @@ function renderJournal() {
   }
 }
 
-$("save-record").addEventListener("click", () => {
+async function saveRecord() {
+  saving = true;
+  refreshControls();
+  try {
+    const previous = records.find((record) => record.id === recordId);
+    const { exceptionChoice, exceptionReason } = previous?.values || {};
+    const values = { ...plantValues() };
+    if (exceptionChoice) values.exceptionChoice = exceptionChoice;
+    if (exceptionReason) values.exceptionReason = exceptionReason;
+    const photos = attachments.filter((item) => imageTypes.has(item.mime));
+    const savedRecord = { id: recordId, values, photos, savedAt: Date.now() };
+    await journalRequest("readwrite", (store) => store.put(savedRecord));
+    records = [savedRecord, ...records.filter((record) => record.id !== recordId)];
+    photosChanged = false;
+    if (location.hash === "#journal") renderJournal();
+    return true;
+  } catch {
+    $("lab-status").textContent = "브라우저에 기록을 저장하지 못했어요. 저장 공간 설정을 확인해 주세요.";
+    return false;
+  } finally {
+    saving = false;
+    refreshControls();
+  }
+}
+
+$("save-record").addEventListener("click", async () => {
+  if (reading || saving) return;
   for (let index = 0; index < stages.length; index += 1) {
     const issue = validateStep(index);
     if (issue) {
@@ -423,27 +547,20 @@ $("save-record").addEventListener("click", () => {
       return;
     }
   }
-  const savedRecord = { id: recordId, values: { ...draft }, savedAt: Date.now() };
-  const updated = [savedRecord, ...records.filter((record) => record.id !== recordId)];
-  if (!writeStorage(journalKey, updated)) {
-    $("lab-status").textContent = "브라우저에 기록을 저장하지 못했어요. 저장 공간 설정을 확인해 주세요.";
-    return;
-  }
-  records = updated;
-  location.hash = "journal";
+  if (await saveRecord()) location.hash = "journal";
 });
 
 $("new-record").addEventListener("click", () => {
   const previous = records.find((record) => record.id === recordId);
-  const changed = fields.some((field) => fieldValue(field.dataset.field) !== (previous?.values?.[field.dataset.field]?.trim() || ""));
+  const changed = photosChanged || Object.keys(plantValues()).some((key) => fieldValue(key) !== (previous?.values?.[key]?.trim() || ""));
   if (changed && !window.confirm("저장하지 않은 탐구 내용을 비우고 새로 시작할까요?")) return;
-  for (const key of Object.keys(draft)) delete draft[key];
+  for (const key of Object.keys(plantValues())) delete draft[key];
   recordId = crypto.randomUUID();
   sessionId = crypto.randomUUID();
   attachments = [];
+  photosChanged = false;
   conversations.forEach((turns) => { turns.length = 0; });
   $("chat-input").value = "";
-  $("exception-explanation").hidden = true;
   $("transfer-explanation").hidden = true;
   hydrateFields();
   renderAttachments();
@@ -457,4 +574,17 @@ window.addEventListener("hashchange", renderView);
 hydrateFields();
 showStep(stage, false);
 renderView();
+const openedRecord = recordId;
+journalRequest("readonly", (store) => store.getAll()).then((entries) => {
+  records = entries.sort((a, b) => b.savedAt - a.savedAt);
+  const previous = records.find((record) => record.id === recordId);
+  if (recordId === openedRecord && !photosChanged && Array.isArray(previous?.photos)) {
+    attachments = [...previous.photos, ...attachments.filter((item) => !imageTypes.has(item.mime))];
+    renderAttachments();
+  }
+  $("view-record").hidden = stages[stage][0] !== "transfer" || !previous;
+  if (location.hash === "#journal") renderJournal();
+}).catch(() => {
+  $("journal-status").textContent = "브라우저에서 도감 저장 공간을 열지 못했어요.";
+});
 checkConnection();
