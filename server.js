@@ -577,7 +577,9 @@ function constrainLessonReply(reply, lesson) {
       return "이미 주어진 자료와 확인한 단서만으로 생각해 보자. 그 단서가 분류를 뒷받침할 만큼 충분하다고 생각해?";
     }
   }
-  const questions = [...reply.matchAll(/[?？]/g)];
+  const quizLeadIn = /그럼\s*배운\s*기준을\s*써먹어\s*볼까\s*[?？]$/u;
+  const questions = [...reply.matchAll(/[?？]/g)]
+    .filter(({ index }) => !quizLeadIn.test(reply.slice(0, index + 1)));
   return questions.length > 1 ? reply.slice(0, questions[0].index + 1) : reply;
 }
 
