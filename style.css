@@ -46,7 +46,7 @@ button:disabled { opacity: .53; cursor: wait }
 .hero h1 em { color: #356d4c; font-style: normal }
 .hero-copy > p:not(.eyebrow) { max-width: 31em; color: var(--muted) }
 .hero-copy > p strong { color: var(--ink); margin-right: .35em }
-.hero-art { display: block; justify-self: center; width: min(100%, 320px); height: auto; border: 1px solid #e3e9da; border-radius: 21px; background: #fff }
+.hero-art { display: block; justify-self: center; width: min(100%, 320px); height: auto }
 .eyebrow { color: var(--green); font-size: 12px; font-weight: 800; letter-spacing: .055em }
 .actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; margin-top: 16px }
 .primary, .secondary, .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 9px; padding: 8px 13px; min-height: 39px; font-weight: 750; font-size: 13px; text-decoration: none; line-height: 1.35 }

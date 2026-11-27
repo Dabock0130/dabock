@@ -82,6 +82,12 @@ async function journalRequest(mode, action, storeName = "records") {
 
 const saved = readStorage(draftKey, {});
 const draft = saved.draft && typeof saved.draft === "object" ? saved.draft : {};
+for (const [key] of evidence) {
+  const status = draft[key + "Status"];
+  const observation = draft[key];
+  if (typeof status === "string" && status && !(typeof observation === "string" && observation.trim())) draft[key] = status;
+  delete draft[key + "Status"];
+}
 const storedRecords = readStorage(journalKey, []);
 let records = Array.isArray(storedRecords) ? storedRecords : [];
 const journalDatabase = openStorage("plant-observation-journal", "records", records);
@@ -104,13 +110,6 @@ for (const [key, organ, label, example] of evidence) {
   const card = document.createElement("fieldset");
   card.className = "organ-card";
   card.innerHTML = `<legend>${organ}</legend>
-    <label class="field">관찰 상태
-      <select data-field="${key}Status" aria-label="${organ} 관찰 상태">
-        <option value="">선택 사항</option>
-        <option>관찰할 수 없음</option>
-        <option>확인하기 어려움</option>
-      </select>
-    </label>
     ${key === "flowers" ? '<label class="field">꽃잎 수 <input data-field="petalCount" maxlength="24" placeholder="예: 6장"></label>' : ""}
     <label class="field">${label}<input data-field="${key}" maxlength="160" placeholder="${example}"></label>
     <img class="organ-preview" alt="${organ} 사진 미리보기" hidden>
@@ -606,7 +605,8 @@ $("save-record").addEventListener("click", async () => {
     status.textContent = "분류 결론과 판단 근거를 적어 주세요.";
     return;
   }
-  const observed = [...organNames.keys(), "petalCount"].some((key) => !/^(?:확인\s*못함|관찰\s*못함|모름|없음)?$/.test(fieldValue(key)));
+  const observed = [...organNames.keys(), "petalCount"].some((key) =>
+    !/^(?:확인\s*못함|관찰\s*못함|모름|없음|관찰할\s*수\s*없음|확인하기\s*어려움)?$/.test(fieldValue(key)));
   if (!observed && conclusion !== "판단 보류") {
     status.textContent = "확인한 특징을 하나 이상 적거나, 단서가 부족하면 판단 보류를 선택해 주세요.";
     return;

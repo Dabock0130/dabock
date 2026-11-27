@@ -22,6 +22,7 @@ const PUBLIC_FILES = new Map([
   ["/index.html", ["index.html", "text/html"]],
   ["/style.css", ["style.css", "text/css"]],
   ["/script.js", ["script.js", "text/javascript"]],
+  ["/assets/tteokgujeon-banner.png", ["assets/tteokgujeon-banner.png", "image/png"]],
   ["/assets/tteokgujeon-ready.jpg", ["assets/tteokgujeon-ready.jpg", "image/jpeg"]],
   ["/assets/tteokgujeon-thinking.jpg", ["assets/tteokgujeon-thinking.jpg", "image/jpeg"]],
   ["/assets/tteokgujeon-praise.jpg", ["assets/tteokgujeon-praise.jpg", "image/jpeg"]],
