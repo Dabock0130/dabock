@@ -12,9 +12,14 @@ const organNames = new Map(evidence.map(([key, name]) => [key, name]));
 const classifications = ["", "외떡잎식물로 추정", "쌍떡잎식물로 추정", "판단 보류"];
 const views = { home: "탐구 홈", lab: "탐구학습", additional: "추가학습", guide: "개념학습", journal: "나의 탐구 도감", sources: "참고 자료" };
 const modeNames = { field: "현장 모드", desk: "책상 앞 모드" };
+const modeBanners = {
+  field: "📸 현장 모드: 실제 식물을 마주 보고 있어요! 먼저 식물 사진을 1장 이상 찍어 올려야 탐구가 시작됩니다.",
+  desk: "📚 책상 앞 모드: 사진이 있어도, 없어도 괜찮아요! 관찰한 특징이나 실험·교과서 내용을 바탕으로 바로 탐구해 보세요.",
+};
+const photoGateMessage = "현장 모드에서는 관찰할 식물 사진을 먼저 1장 이상 올려야 다음으로 넘어갈 수 있어요!";
 const modeHints = {
   field: "식물을 직접 살펴보자. 잎맥은 나란히 뻗어 있니, 그물처럼 이어져 있니?",
-  desk: "이미 받은 사진이나 자료를 함께 살펴보자. 잎에서 어떤 모양의 잎맥이 보여?",
+  desk: "사진이나 교과서, 네가 적은 관찰 내용으로 탐구할 수 있어. 잎맥은 어떤 모양이었어?",
 };
 const offlineHints = {
   field: {
@@ -202,7 +207,45 @@ function renderPhotos() {
     if (photo) controls.preview.src = photo.contentString;
     else controls.preview.removeAttribute("src");
   }
+  renderPhotoGate();
+  renderChat();
 }
+
+function fieldNeedsPhoto() {
+  return learningMode === "field" && !Object.keys(photos).length;
+}
+
+function renderPhotoGate() {
+  const locked = fieldNeedsPhoto();
+  $("photo-gate").hidden = !locked;
+  $("photo-gate-message").textContent = locked ? photoGateMessage : "";
+  $("chat-input").readOnly = locked;
+  $("chat-input").placeholder = locked ? "식물 사진을 올리면 질문을 적을 수 있어요." : "관찰한 점이나 궁금한 점을 적어 보세요.";
+  if (locked) $("chat-input").setAttribute("aria-describedby", "photo-gate-message");
+  else $("chat-input").removeAttribute("aria-describedby");
+  for (const button of document.querySelectorAll("[data-coach], #chat-form button, #review-hypothesis, #save-record")) {
+    if (locked) button.setAttribute("aria-disabled", "true");
+    else button.removeAttribute("aria-disabled");
+  }
+  if (!locked) {
+    for (const id of ["hypothesis-status", "lab-status"]) {
+      if ($(id).textContent === photoGateMessage) $(id).textContent = "";
+    }
+  }
+  $("lab-grid").querySelector(".learning-workspace").toggleAttribute("data-photo-required", locked);
+}
+
+function blockWithoutFieldPhoto(status) {
+  if (!fieldNeedsPhoto()) return false;
+  if (status === "photo-gate-message") $("photo-gate").focus({ preventScroll: true });
+  else $(status).textContent = photoGateMessage;
+  return true;
+}
+
+$("chat-content").addEventListener("click", (event) => {
+  if (event.target.closest("#chat-log, #chat-input")) blockWithoutFieldPhoto("photo-gate-message");
+});
+$("find-photo-upload").addEventListener("click", () => photoControls.values().next().value.input.focus());
 
 function attachmentBytes(items) {
   return items.reduce((size, item) => size + item.size, 0);
@@ -312,8 +355,13 @@ $("documents").addEventListener("change", async (event) => {
 
 function renderMode() {
   $("mode-indicator").textContent = modeNames[learningMode] || "학습 모드 선택 전";
+  const banner = $("mode-banner");
+  banner.hidden = !learningMode;
+  banner.textContent = modeBanners[learningMode] || "";
+  banner.dataset.mode = learningMode;
   $("chat-content").hidden = !learningMode;
   for (const radio of document.querySelectorAll('[name="learning-mode"]')) radio.checked = radio.value === learningMode;
+  renderPhotoGate();
   renderChat();
   renderChatNote();
 }
@@ -330,6 +378,7 @@ $("go-to-coach").addEventListener("click", focusMode);
 $("review-hypothesis").addEventListener("click", () => {
   if (busy || reading || saving) return;
   const status = $("hypothesis-status");
+  if (blockWithoutFieldPhoto("hypothesis-status")) return;
   const missing = !fieldValue("hypothesis") ? "hypothesis" : !fieldValue("reason") ? "reason" : "";
   if (missing) {
     status.textContent = "첫 추측을 선택하고 그렇게 생각한 근거를 적어 주세요.";
@@ -374,7 +423,7 @@ function renderChat() {
   }
   log.replaceChildren();
   if (!chat) return;
-  const entries = [{ text: modeHints[learningMode] }, ...turns];
+  const entries = [...(fieldNeedsPhoto() ? [] : [{ text: modeHints[learningMode] }]), ...turns];
   for (const { text, mine, files } of entries) {
     const bubble = document.createElement("div");
     bubble.className = "message" + (mine ? " me" : "");
@@ -417,7 +466,7 @@ function renderChatNote() {
 }
 
 async function send(message, reviewRequested = false) {
-  if (!message || busy || reading) return;
+  if (!message || busy || reading || saving || blockWithoutFieldPhoto("photo-gate-message")) return;
   if (!learningMode) {
     focusMode();
     return;
@@ -484,6 +533,7 @@ async function send(message, reviewRequested = false) {
 
 $("chat-form").addEventListener("submit", (event) => {
   event.preventDefault();
+  if (blockWithoutFieldPhoto("photo-gate-message")) return;
   const message = $("chat-input").value.trim();
   if (!message) {
     $("chat-status").textContent = "먼저 질문이나 관찰 내용을 적어 주세요.";
@@ -610,6 +660,7 @@ async function saveRecord() {
 $("save-record").addEventListener("click", async () => {
   if (busy || reading || saving) return;
   const status = $("lab-status");
+  if (blockWithoutFieldPhoto("lab-status")) return;
   const conclusion = fieldValue("conclusion");
   if (!conclusion || !fieldValue("conclusionReason")) {
     status.textContent = "분류 결론과 판단 근거를 적어 주세요.";

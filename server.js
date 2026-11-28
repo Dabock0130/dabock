@@ -151,6 +151,10 @@ async function chat(request, response) {
     const body = await readJson(request);
     if (body.activity === "quiz") return await generateQuiz(response, body.topicIndex);
     const attachments = normalizeAttachments(body.attachments);
+    const photoCount = attachments.filter(({ mime }) => mime.startsWith("image/")).length;
+    if (body.lesson?.learningMode === "field" && !photoCount) {
+      return sendJson(response, 400, { error: "현장 모드에서는 관찰할 식물 사진을 먼저 1장 이상 올려야 다음으로 넘어갈 수 있어요!" });
+    }
     let message = typeof body.message === "string" ? body.message.trim() : "";
     const sessionId =
       typeof body.sessionId === "string" && body.sessionId.trim()
@@ -165,7 +169,7 @@ async function chat(request, response) {
       return sendJson(response, 400, { error: "질문을 입력해 주세요." });
     }
 
-    const lessonMessage = prepareLessonMessage(body.lesson, message, attachments);
+    const lessonMessage = prepareLessonMessage(body.lesson, message, attachments, photoCount);
     const payload = {
       message: lessonMessage || prepareChatMessage(message),
       mode: lessonMessage ? "chat" : "automatic",
@@ -583,10 +587,10 @@ const LESSON_FIELDS = {
 };
 
 function usesProvidedMaterials(lesson) {
-  return lesson.learningMode === "desk" || lesson.stage === "exception" || lesson.stage === "transfer";
+  return lesson.stage === "exception" || lesson.stage === "transfer";
 }
 
-function prepareLessonMessage(lesson, message, attachments) {
+function prepareLessonMessage(lesson, message, attachments, photoCount) {
   if (typeof lesson?.stage !== "string" || !Object.hasOwn(LESSON_STAGES, lesson.stage)) return "";
 
   const notes = Object.fromEntries(Object.entries(LESSON_FIELDS)
@@ -598,10 +602,13 @@ function prepareLessonMessage(lesson, message, attachments) {
     "너는 중학교 생명과학 탐구 도우미 떡(잎)구(분)전(문가), 줄여서 떡구전이야.",
     "외떡잎식물과 쌍떡잎식물의 형태적 특징을 관찰하고 분류 근거를 설명하도록 친근한 한국어로 돕는다.",
     "현재 활동: " + LESSON_STAGES[lesson.stage],
-    "학생이 선택한 학습 모드: " + (lesson.learningMode === "field" ? "현장 모드" : providedMaterials ? "책상 앞 모드" : "선택 정보 없음"),
+    "[현재 모드: " + (lesson.learningMode === "field" ? "현장 모드" : lesson.learningMode === "desk" || providedMaterials ? "책상 앞 모드" : "선택 정보 없음") + "]",
+    "[사진 상태: " + (photoCount ? "첨부됨(" + photoCount + "장)" : "없음") + "]",
     providedMaterials
       ? "이미 제공된 사진, 기록과 표본 정보만 쓴다. 촬영, 다른 각도나 확대 사진, 추가 업로드, 새 표본 관찰을 요청하지 않는다. 보이지 않는 특징은 관찰 사실처럼 추측하지 않는다. 확인 가능한 단서가 부족할 때는 판단을 보류할 수 있도록 돕는다."
-      : "현장에서 볼 수 있는 단서 하나를 구체적으로 안내한다. 필요하면 잎맥을 가까이 보거나 꽃을 위에서 보는 방법, 다른 각도나 확대 사진을 한 가지 제안할 수 있다. 학생이 어렵다고 하거나 관찰할 수 없다고 기록한 부위는 다시 요구하지 않는다.",
+      : lesson.learningMode === "desk"
+        ? "사진 없이도 학생의 설명, 교과서, 실험 표본과 관찰 기록으로 진행한다. 이미 가진 사진이 도움이 될 때만 선택 사항으로 요청할 수 있다. 학생이 올릴 수 없거나 글로 설명하겠다고 했다면 대화 내내 사진을 다시 요구하지 않고 다음 단서로 이어간다."
+        : "현장 모드에서는 첨부된 식물 사진을 출발점으로 실물에서 볼 수 있는 단서 하나를 안내한다. 필요하면 다른 각도나 확대 사진을 한 가지 제안할 수 있다. 학생이 관찰할 수 없다고 말하거나 기록한 부위는 다시 요구하지 않는다.",
     "첫 응답에 분류 정답을 주지 않는다. 답변은 2~3개의 짧은 문장으로, 질문은 최대 하나만 한다. 지금까지 학생이 말했거나 이미 아래에 기록한 특징을 활용하고 같은 질문을 반복하지 않는다. 첫 추측과 근거를 먼저 살피고, 오류는 즉시 틀렸다고 선언하는 대신 어떤 관찰이 그 판단과 맞는지 다시 살펴보게 한다.",
     lesson.stage === "learn" && (lesson.reviewRequested === true
       ? "가설 검토 요청 버튼을 눌렀다. 기록과 대화에서 5가지 단서의 확인 여부를 먼저 점검한다. 남은 단서가 있으면 다음 단서 하나를 묻고, 모두 확인했다면 학생이 작성한 가설과 근거를 검토한다."

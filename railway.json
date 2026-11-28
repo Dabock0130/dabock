@@ -1,6 +1,7 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "deploy": {
+    "preDeployCommand": ["node apply-workspace-prompt.cjs"],
     "startCommand": "npm start",
     "healthcheckPath": "/healthz"
   }

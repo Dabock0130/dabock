@@ -36,6 +36,7 @@
 
         <section id="lab" class="view" aria-labelledby="lab-title" hidden>
           <header class="page-heading"><h1 id="lab-title" tabindex="-1">식물 분류 탐구 학습</h1><p>식물의 특징을 기록하고 떡구전과 함께 분류 근거를 살펴봐요.</p><div class="actions"><button type="button" class="secondary" id="go-to-coach">AI 학습 모드 선택</button><button type="button" class="secondary" data-new-record>새 식물 탐구하기</button></div></header>
+          <p class="mode-banner" id="mode-banner" role="status" hidden></p>
           <div class="lab-grid" id="lab-grid">
             <div class="learning-workspace" role="region" aria-label="식물 관찰과 기록" tabindex="0">
               <details class="card traits-card"><summary>외떡잎과 쌍떡잎의 대표 특징 비교표</summary>
@@ -94,6 +95,10 @@
                 </div>
               </fieldset>
               <div id="chat-content" hidden>
+              <div class="photo-gate callout" id="photo-gate" role="group" aria-labelledby="photo-gate-message" tabindex="-1" hidden>
+                <p id="photo-gate-message" role="status"></p>
+                <button type="button" class="secondary" id="find-photo-upload">사진 추가 위치로 이동</button>
+              </div>
               <div class="chat-toolbar"><button type="button" class="secondary" id="reset-chat">대화 초기화</button></div>
               <div class="chat-log" id="chat-log" role="log" aria-label="떡구전과 나눈 대화"></div>
               <div class="chat-actions" aria-label="바로 질문하기"><button type="button" class="text-button coach-action" data-coach="잎맥이 나란히 나 있어요">잎맥이 나란히 나 있어요</button><button type="button" class="text-button coach-action" data-coach="그물처럼 얽혀 있어요">그물처럼 얽혀 있어요</button><button type="button" class="text-button coach-action" data-coach="꽃잎 수를 세어봤어요">꽃잎 수를 세어봤어요</button></div>
