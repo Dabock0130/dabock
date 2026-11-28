@@ -237,13 +237,18 @@ function renderPhotoGate() {
 
 function blockWithoutFieldPhoto(status) {
   if (!fieldNeedsPhoto()) return false;
-  if (status === "photo-gate-message") $("photo-gate").focus({ preventScroll: true });
+  if (status === "photo-gate-message") $("photo-gate").focus();
   else $(status).textContent = photoGateMessage;
   return true;
 }
 
 $("chat-content").addEventListener("click", (event) => {
   if (event.target.closest("#chat-log, #chat-input")) blockWithoutFieldPhoto("photo-gate-message");
+});
+$("chat-input").addEventListener("keydown", (event) => {
+  if ((event.key.length === 1 || event.key === "Enter") && blockWithoutFieldPhoto("photo-gate-message")) {
+    event.preventDefault();
+  }
 });
 $("find-photo-upload").addEventListener("click", () => photoControls.values().next().value.input.focus());
 
