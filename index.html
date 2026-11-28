@@ -112,11 +112,8 @@
         </section>
         <section id="additional" class="view" hidden aria-labelledby="additional-title">
             <header class="page-heading"><h1 id="additional-title">추가학습</h1><p>예외 사례를 살펴보거나 객관식 문제를 풀어 봐요.</p></header>
-            <div class="extra-tabs" role="tablist" aria-label="추가학습 활동">
-              <button class="secondary" type="button" role="tab" aria-selected="true" aria-controls="example-panel" id="example-tab">예외 사례 탐구</button>
-              <button class="secondary" type="button" role="tab" aria-selected="false" aria-controls="quiz-panel" id="quiz-tab" tabindex="-1">실전 객관식 문제</button>
-            </div>
-            <section id="example-panel" role="tabpanel" aria-labelledby="example-tab">
+            <section aria-labelledby="example-title">
+            <h2 class="examples-title" id="example-title">예외 사례 탐구</h2>
             <div class="challenge-grid">
               <article class="card challenge-card">
                 <p class="challenge-clue">단서 · 굵고 단단한 줄기</p>
@@ -134,9 +131,9 @@
               </article>
             </div>
             </section>
-            <section class="card quiz-panel" id="quiz-panel" role="tabpanel" aria-labelledby="quiz-tab" hidden>
+            <section class="card quiz-panel" id="quiz-panel" aria-labelledby="quiz-title">
               <div class="quiz-header">
-                <h2>실전 객관식 문제</h2>
+                <h2 id="quiz-title">실전 객관식 문제</h2>
                 <p id="quiz-status" role="status"></p>
               </div>
               <h3 id="quiz-question" tabindex="-1"></h3>

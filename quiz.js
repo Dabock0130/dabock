@@ -74,14 +74,21 @@
     for (const [i, text] of quiz.choices.entries()) {
       const option = document.createElement("button");
       const number = document.createElement("span");
+      const label = document.createElement("span");
       number.className = "quiz-number";
-      number.textContent = String(i + 1) + ".";
+      number.textContent = String(i + 1);
       option.type = "button";
       option.setAttribute("aria-pressed", "false");
-      option.append(number, document.createTextNode(text));
+      label.textContent = text;
+      option.append(number, label);
       option.addEventListener("click", () => {
         interacting = true;
-        for (const choice of options.children) choice.setAttribute("aria-pressed", String(choice === option));
+        for (const [choiceIndex, choice] of Array.from(options.children).entries()) {
+          choice.setAttribute("aria-pressed", String(choice === option));
+          if (choiceIndex === quiz.answerIndex) choice.dataset.result = "correct";
+          else if (choice === option) choice.dataset.result = "incorrect";
+          else delete choice.dataset.result;
+        }
         feedback.textContent = i === quiz.answerIndex ? "정답이에요! " + quiz.explanation
           : "오답이에요. 정답은 " + (quiz.answerIndex + 1) + "번이에요. " + quiz.explanation;
         feedback.hidden = false;
@@ -126,27 +133,6 @@
       if (pending === controller) pending = null;
     }
   });
-
-  const tabs = [...document.querySelectorAll(".extra-tabs [role='tab']")];
-  function selectTab(selected) {
-    for (const tab of tabs) {
-      const active = tab === selected;
-      tab.setAttribute("aria-selected", String(active));
-      tab.tabIndex = active ? 0 : -1;
-      document.getElementById(tab.getAttribute("aria-controls")).hidden = !active;
-    }
-  }
-  for (const [i, tab] of tabs.entries()) {
-    tab.addEventListener("click", () => selectTab(tab));
-    tab.addEventListener("keydown", (event) => {
-      const destinations = { ArrowLeft: (i + tabs.length - 1) % tabs.length, ArrowRight: (i + 1) % tabs.length, Home: 0, End: tabs.length - 1 };
-      if (!Object.hasOwn(destinations, event.key)) return;
-      event.preventDefault();
-      const selected = tabs[destinations[event.key]];
-      selectTab(selected);
-      selected.focus();
-    });
-  }
 
   showQuiz(bank[index], "기본 문제");
 })();
